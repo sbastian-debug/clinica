@@ -17,7 +17,7 @@
                         <i class="bi bi-calendar2-range-fill fs-5"></i>
                     </div>
                     <div>
-                        <h6 class="fw-bold mb-0 text-dark">CU11: Consultar Agenda Médica Diaria</h6>
+                        <h6 class="fw-bold mb-0 text-dark">{{ $rol === 'Administrador' ? 'CU11: ' : '' }}Consultar Agenda Médica Diaria</h6>
                         <span class="text-muted small">Visualice los turnos ocupados y franjas libres del médico especialista en tiempo real</span>
                     </div>
                 </div>
@@ -244,13 +244,13 @@
 
                 <div class="modal-header">
                     <h6 class="modal-title fw-bold text-primary">
-                        <i class="bi bi-calendar2-range-fill me-2"></i> CU08: Reprogramar Cita <span id="modal_reprog_codigo"></span>
+                        <i class="bi bi-calendar2-range-fill me-2"></i> {{ $rol === 'Administrador' ? 'CU08: ' : '' }}Reprogramar Cita <span id="modal_reprog_codigo"></span>
                     </h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <p class="text-secondary small mb-3">
-                        Seleccione la nueva fecha y hora para la cita. El sistema verificará automáticamente la disponibilidad del médico (RF07).
+                        Seleccione la nueva fecha y hora para la cita. El sistema verificará automáticamente la disponibilidad del médico{{ $rol === 'Administrador' ? ' (RF07)' : '' }}.
                     </p>
                     <div class="mb-3">
                         <label class="form-label small fw-semibold text-secondary">Nueva Fecha de Atención *</label>

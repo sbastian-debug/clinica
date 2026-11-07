@@ -7,7 +7,7 @@
                     <i class="bi bi-clock-history fs-5"></i>
                 </div>
                 <div>
-                    <h6 class="fw-bold mb-0 text-dark">Asignar Horario (CU05 / RF05)</h6>
+                    <h6 class="fw-bold mb-0 text-dark">Asignar Horario {{ session('rol') === 'Administrador' ? '(CU05 / RF05)' : '' }}</h6>
                     <span class="text-muted small">Programación de turnos y validación de fin posterior a inicio</span>
                 </div>
             </div>

@@ -23,7 +23,7 @@
                         <i class="bi bi-file-earmark-bar-graph-fill fs-5"></i>
                     </div>
                     <div>
-                        <h6 class="fw-bold mb-0 text-dark">CU13: Generar Reportes Administrativos y Estadísticos</h6>
+                        <h6 class="fw-bold mb-0 text-dark">{{ session('rol') === 'Administrador' ? 'CU13: ' : '' }}Generar Reportes Administrativos y Estadísticos</h6>
                         <span class="text-muted small">Filtre por rango de fechas para evaluar productividad médica, atención y efectividad</span>
                     </div>
                 </div>

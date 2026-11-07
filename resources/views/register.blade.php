@@ -14,6 +14,9 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <style>
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
@@ -84,6 +87,16 @@
         </div>
     @endif
 
+    @if($errors->any())
+        <div class="alert alert-danger py-2 px-3 small rounded-3 mb-3">
+            <ul class="mb-0 ps-3">
+                @foreach($errors->all() as $err)
+                    <li>{{ $err }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     <form action="{{ route('register.post') }}" method="POST" class="row g-3">
         @csrf
 
@@ -96,39 +109,39 @@
 
         <div class="col-md-4">
             <label class="form-label small fw-semibold text-secondary">Nombre de Usuario *</label>
-            <input type="text" name="username" class="form-control rounded-3" value="{{ old('username') }}" placeholder="Ej. mlopez" required>
+            <input type="text" name="username" class="form-control rounded-3" value="{{ old('username') }}" required>
         </div>
 
         <div class="col-md-4">
             <label class="form-label small fw-semibold text-secondary">Correo Electrónico *</label>
-            <input type="email" name="email" class="form-control rounded-3" value="{{ old('email') }}" placeholder="correo@gmail.com" required>
+            <input type="email" name="email" class="form-control rounded-3" value="{{ old('email') }}" required>
         </div>
 
         <div class="col-md-4">
             <label class="form-label small fw-semibold text-secondary">Contraseña *</label>
-            <input type="password" name="password" class="form-control rounded-3" placeholder="Mínimo 6 caracteres" required>
+            <input type="password" name="password" class="form-control rounded-3" required>
         </div>
 
         <!-- Datos Personales -->
         <div class="col-12 mt-4">
             <div class="text-uppercase fw-bold text-primary small mb-1" style="font-size: 0.72rem; letter-spacing: 0.8px;">
-                2. Expediente del Paciente (CU02)
+                2. Expediente del Paciente
             </div>
         </div>
 
         <div class="col-md-4">
             <label class="form-label small fw-semibold text-secondary">Cédula de Identidad (CI) *</label>
-            <input type="text" name="ci" class="form-control rounded-3" value="{{ old('ci') }}" placeholder="Ej. 8945123" required>
+            <input type="text" name="ci" class="form-control rounded-3" value="{{ old('ci') }}" required>
         </div>
 
         <div class="col-md-4">
             <label class="form-label small fw-semibold text-secondary">Nombres *</label>
-            <input type="text" name="nombres" class="form-control rounded-3" value="{{ old('nombres') }}" placeholder="Ej. María" required>
+            <input type="text" name="nombres" class="form-control rounded-3" value="{{ old('nombres') }}" required>
         </div>
 
         <div class="col-md-4">
             <label class="form-label small fw-semibold text-secondary">Apellidos *</label>
-            <input type="text" name="apellidos" class="form-control rounded-3" value="{{ old('apellidos') }}" placeholder="Ej. López Suárez" required>
+            <input type="text" name="apellidos" class="form-control rounded-3" value="{{ old('apellidos') }}" required>
         </div>
 
         <div class="col-md-4">
@@ -139,19 +152,19 @@
         <div class="col-md-4">
             <label class="form-label small fw-semibold text-secondary">Sexo *</label>
             <select name="sexo" class="form-select rounded-3" required>
-                <option value="F" selected>Femenino</option>
-                <option value="M">Masculino</option>
+                <option value="M" {{ old('sexo') === 'M' ? 'selected' : '' }}>Masculino</option>
+                <option value="F" {{ old('sexo') === 'F' ? 'selected' : '' }}>Femenino</option>
             </select>
         </div>
 
         <div class="col-md-4">
             <label class="form-label small fw-semibold text-secondary">Teléfono Celular *</label>
-            <input type="text" name="telefono" class="form-control rounded-3" value="{{ old('telefono') }}" placeholder="Ej. 75011122" required>
+            <input type="text" name="telefono" class="form-control rounded-3" value="{{ old('telefono') }}" required>
         </div>
 
         <div class="col-12">
             <label class="form-label small fw-semibold text-secondary">Dirección Domiciliaria</label>
-            <input type="text" name="direccion" class="form-control rounded-3" value="{{ old('direccion') }}" placeholder="Ej. Av. Beni #120">
+            <input type="text" name="direccion" class="form-control rounded-3" value="{{ old('direccion') }}">
         </div>
 
         <div class="col-12 mt-4">
@@ -169,6 +182,18 @@
         </div>
     </form>
 </div>
+
+<script>
+    @if(session('error'))
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de Registro',
+            text: "{{ session('error') }}",
+            confirmButtonColor: '#0284c7',
+            confirmButtonText: 'Entendido'
+        });
+    @endif
+</script>
 
 </body>
 </html>

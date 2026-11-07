@@ -13,6 +13,7 @@ Route::post('/registro', [ClinicaController::class, 'registerPaciente'])->name('
 
 // Panel Principal
 Route::get('/dashboard', [ClinicaController::class, 'dashboard'])->name('dashboard');
+Route::get('/sincronizar-datos', [ClinicaController::class, 'sincronizarDatosManualmente'])->name('sincronizar');
 
 // Módulo Pacientes (CU02)
 Route::post('/pacientes/guardar', [ClinicaController::class, 'guardarPaciente'])->name('pacientes.store');

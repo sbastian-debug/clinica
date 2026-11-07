@@ -7,7 +7,7 @@
                     <i class="bi bi-diagram-3-fill fs-5"></i>
                 </div>
                 <div>
-                    <h6 class="fw-bold mb-0 text-dark">Nueva Especialidad (CU04 / RF04)</h6>
+                    <h6 class="fw-bold mb-0 text-dark">Nueva Especialidad {{ session('rol') === 'Administrador' ? '(CU04 / RF04)' : '' }}</h6>
                     <span class="text-muted small">Alta de área médica y servicios de consulta</span>
                 </div>
             </div>

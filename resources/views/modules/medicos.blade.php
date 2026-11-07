@@ -8,8 +8,8 @@
                         <i class="bi bi-person-badge-fill fs-5"></i>
                     </div>
                     <div>
-                        <h6 class="fw-bold mb-0 text-dark">Registrar Nuevo Médico (CU03 / RF03)</h6>
-                        <span class="text-muted small">Asignación de matrícula profesional única (RN02), código correlativo y especialidad</span>
+                        <h6 class="fw-bold mb-0 text-dark">Registrar Nuevo Médico {{ session('rol') === 'Administrador' ? '(CU03 / RF03)' : '' }}</h6>
+                        <span class="text-muted small">{{ session('rol') === 'Administrador' ? 'Asignación de matrícula profesional única (RN02), código correlativo y especialidad' : 'Asignación de matrícula profesional única, código y especialidad' }}</span>
                     </div>
                 </div>
             </div>

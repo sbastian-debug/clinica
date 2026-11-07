@@ -2,15 +2,16 @@
 
 @php
     $rol = session('rol', 'Administrador');
+    $esAdmin = $rol === 'Administrador';
     $titulos = [
-        'citas'          => $rol === 'Paciente' ? 'Mis Citas Médicas' : ($rol === 'Medico' ? 'Mi Agenda Médica' : 'Gestión de Citas Médicas (CU06 / CU07)'),
-        'agenda'         => 'CU11: Consultar Agenda Médica Diaria',
-        'historial'      => $rol === 'Paciente' ? 'Mi Historial Clínico de Citas' : 'CU12: Consultar Historial de Citas por Paciente',
-        'reportes'       => 'CU13: Generar Reportes Administrativos y Estadísticos',
-        'pacientes'      => 'CU02: Directorio de Pacientes',
-        'medicos'        => 'CU03: Plantel Médico Especializado',
-        'especialidades' => 'CU04: Especialidades Médicas',
-        'horarios'       => 'CU05: Horarios de Atención Médica',
+        'citas'          => $rol === 'Paciente' ? 'Mis Citas Médicas' : ($rol === 'Medico' ? 'Mi Agenda Médica' : ($esAdmin ? 'Gestión de Citas Médicas (CU06 / CU07)' : 'Gestión de Citas Médicas')),
+        'agenda'         => $esAdmin ? 'CU11: Consultar Agenda Médica Diaria' : 'Agenda Médica Diaria',
+        'historial'      => $rol === 'Paciente' ? 'Mi Historial Clínico de Citas' : ($esAdmin ? 'CU12: Consultar Historial de Citas por Paciente' : 'Historial de Citas por Paciente'),
+        'reportes'       => $esAdmin ? 'CU13: Generar Reportes Administrativos y Estadísticos' : 'Reportes Administrativos y Estadísticos',
+        'pacientes'      => $esAdmin ? 'CU02: Directorio de Pacientes' : 'Directorio de Pacientes',
+        'medicos'        => $esAdmin ? 'CU03: Plantel Médico Especializado' : 'Plantel Médico Especializado',
+        'especialidades' => $esAdmin ? 'CU04: Especialidades Médicas' : 'Especialidades Médicas',
+        'horarios'       => $esAdmin ? 'CU05: Horarios de Atención Médica' : 'Horarios de Atención Médica',
     ];
     $moduloActual = $modulo ?? 'citas';
     $tituloActual = $titulos[$moduloActual] ?? 'Panel de Control';

@@ -14,10 +14,10 @@
                     </div>
                     <div>
                         <h6 class="fw-bold mb-0 text-dark">
-                            {{ $rol === 'Paciente' ? 'Solicitar Cita Médica (Auto-reserva)' : 'Programar Nueva Cita Médica (CU06 / RF06)' }}
+                            {{ $rol === 'Paciente' ? 'Solicitar Cita Médica (Auto-reserva)' : ($rol === 'Administrador' ? 'Programar Nueva Cita Médica (CU06 / RF06)' : 'Programar Nueva Cita Médica') }}
                         </h6>
                         <span class="text-muted small">
-                            Validación de disponibilidad en tiempo real (RF07) y regla de no agendamiento en fechas pasadas (RN06)
+                            {{ $rol === 'Administrador' ? 'Validación de disponibilidad en tiempo real (RF07) y regla de no agendamiento en fechas pasadas (RN06)' : 'Validación de disponibilidad en tiempo real y selección de fecha' }}
                         </span>
                     </div>
                 </div>
@@ -137,7 +137,7 @@
                         @elseif($rol === 'Medico')
                             Agenda de Pacientes y Consultas del Médico
                         @else
-                            Gestión de Citas Médicas (CU07 / CU08 / CU09 / CU10)
+                            {{ $rol === 'Administrador' ? 'Gestión de Citas Médicas (CU07 / CU08 / CU09 / CU10)' : 'Gestión de Citas Médicas' }}
                         @endif
                     </h6>
                     <span class="text-muted small">
@@ -165,7 +165,7 @@
                             <th>Fecha</th>
                             <th>Horario</th>
                             <th>Motivo</th>
-                            <th>Estado (CU10)</th>
+                            <th>Estado {{ $rol === 'Administrador' ? '(CU10)' : '' }}</th>
                             <th class="text-end">Acciones</th>
                         </tr>
                     </thead>
@@ -239,7 +239,7 @@
                                                 @csrf
                                                 <input type="hidden" name="cita_id" value="{{ $c->id }}">
                                                 <input type="hidden" name="estado" value="En Espera">
-                                                <button type="submit" class="btn btn-sm btn-outline-warning text-dark rounded-pill px-2" title="Marcar en Sala de Espera (CU10)">
+                                                <button type="submit" class="btn btn-sm btn-outline-warning text-dark rounded-pill px-2" title="Marcar en Sala de Espera">
                                                     <i class="bi bi-box-arrow-in-right"></i> Llegó
                                                 </button>
                                             </form>
@@ -252,20 +252,20 @@
                                                 @csrf
                                                 <input type="hidden" name="cita_id" value="{{ $c->id }}">
                                                 <input type="hidden" name="estado" value="Atendida">
-                                                <button type="submit" class="btn btn-sm btn-outline-success rounded-pill px-2" title="Marcar Atendida (CU10)">
+                                                <button type="submit" class="btn btn-sm btn-outline-success rounded-pill px-2" title="Marcar Atendida">
                                                     <i class="bi bi-check-lg"></i> Atender
                                                 </button>
                                             </form>
                                             @endif
 
                                             <!-- CU08: Reprogramar Cita -->
-                                            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-2" title="Reprogramar fecha/hora (CU08)"
+                                            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-2" title="Reprogramar fecha y hora"
                                                     onclick="abrirModalReprogramar('{{ $c->id }}', '{{ $c->codigo }}', '{{ $c->fecha_cita }}', '{{ substr($c->hora_inicio, 0, 5) }}')">
                                                 <i class="bi bi-arrow-repeat"></i> Reprogramar
                                             </button>
 
                                             <!-- CU09: Cancelar Cita -->
-                                            <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-2" title="Cancelar Cita (CU09)"
+                                            <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-2" title="Cancelar Cita"
                                                     onclick="abrirModalCancelar('{{ $c->id }}', '{{ $c->codigo }}')">
                                                 <i class="bi bi-x-lg"></i> Cancelar
                                             </button>
@@ -306,13 +306,13 @@
 
                 <div class="modal-header">
                     <h6 class="modal-title fw-bold text-primary">
-                        <i class="bi bi-calendar2-range-fill me-2"></i> CU08: Reprogramar Cita <span id="modal_reprog_codigo"></span>
+                        <i class="bi bi-calendar2-range-fill me-2"></i> {{ $rol === 'Administrador' ? 'CU08: ' : '' }}Reprogramar Cita <span id="modal_reprog_codigo"></span>
                     </h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <p class="text-secondary small mb-3">
-                        Indique la nueva fecha y franja de hora deseada. El sistema validará que el médico no tenga otra cita asignada en ese bloque (RF07).
+                        Indique la nueva fecha y franja de hora deseada. El sistema validará que el médico no tenga otra cita asignada en ese bloque{{ $rol === 'Administrador' ? ' (RF07)' : '' }}.
                     </p>
                     <div class="mb-3">
                         <label class="form-label small fw-semibold text-secondary">Nueva Fecha de Atención *</label>
@@ -359,7 +359,7 @@
 
                 <div class="modal-header">
                     <h6 class="modal-title fw-bold text-danger">
-                        <i class="bi bi-exclamation-octagon-fill me-2"></i> CU09: Cancelar Cita Médica <span id="modal_cancelar_codigo"></span>
+                        <i class="bi bi-exclamation-octagon-fill me-2"></i> {{ $rol === 'Administrador' ? 'CU09: ' : '' }}Cancelar Cita Médica <span id="modal_cancelar_codigo"></span>
                     </h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -411,15 +411,20 @@
             selEsp.addEventListener('change', function () {
                 const espId = this.value;
                 const options = selMed.querySelectorAll('option');
+                let currentValid = false;
                 options.forEach(opt => {
                     if (opt.value === '') return;
                     const optEsp = opt.getAttribute('data-especialidad');
                     if (!espId || optEsp == espId) {
                         opt.style.display = '';
+                        if (opt.selected) currentValid = true;
                     } else {
                         opt.style.display = 'none';
                     }
                 });
+                if (!currentValid && espId) {
+                    selMed.value = '';
+                }
             });
         }
     });

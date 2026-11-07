@@ -15,7 +15,7 @@
                     <i class="bi bi-folder2-open fs-5"></i>
                 </div>
                 <div>
-                    <h6 class="fw-bold mb-0 text-dark">CU12: Consultar Historial de Citas por Paciente</h6>
+                    <h6 class="fw-bold mb-0 text-dark">{{ $rol === 'Administrador' ? 'CU12: ' : '' }}Consultar Historial de Citas por Paciente</h6>
                     <span class="text-muted small">Seleccione un paciente para auditar su trayectoria de citas, consultas médicas y asistencias</span>
                 </div>
             </div>

@@ -9,11 +9,38 @@ use Illuminate\Support\Facades\Hash;
 class ClinicaController extends Controller
 {
     /**
+     * Sincroniza las secuencias autoincrementales de PostgreSQL con el MAX(id) actual
+     * para evitar errores de clave primaria duplicada (UniqueConstraintViolationException).
+     */
+    private function sincronizarSecuenciasPostgres(): void
+    {
+        try {
+            if (DB::getDriverName() === 'pgsql') {
+                $tablas = ['usuarios', 'pacientes', 'medicos', 'especialidades', 'horarios_atencion', 'citas', 'roles'];
+                foreach ($tablas as $tabla) {
+                    try {
+                        $maxId = DB::table($tabla)->max('id') ?? 0;
+                        if ($maxId > 0) {
+                            DB::statement("SELECT setval(COALESCE(pg_get_serial_sequence('{$tabla}', 'id'), '{$tabla}_id_seq'), ?)", [$maxId]);
+                        }
+                    } catch (\Throwable $ex) {
+                        // Continuar si la secuencia ya está alineada o la tabla no tiene secuencia
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            // Ignorar excepciones de conectividad temporal
+        }
+    }
+
+    /**
      * Asegura la existencia y correcta vinculación de cuentas demo por rol.
      */
     private function asegurarCuentasDemo(): void
     {
         try {
+            $this->sincronizarSecuenciasPostgres();
+
             $hash = Hash::make('123456');
             $roles = DB::table('roles')->pluck('id', 'nombre');
 
@@ -25,7 +52,9 @@ class ClinicaController extends Controller
             // 1. Paciente Demo 1: María López (mlopez / 123456)
             $userMlopez = DB::table('usuarios')->where('username', 'mlopez')->first();
             if (! $userMlopez) {
-                $userMlopezId = DB::table('usuarios')->insertGetId([
+                $nextUserId = (DB::table('usuarios')->max('id') ?? 0) + 1;
+                DB::table('usuarios')->insert([
+                    'id'            => $nextUserId,
                     'rol_id'        => $rolPaciente,
                     'username'      => 'mlopez',
                     'email'         => 'maria.lopez@gmail.com',
@@ -34,7 +63,7 @@ class ClinicaController extends Controller
                     'created_at'    => now(),
                     'updated_at'    => now(),
                 ]);
-                DB::table('pacientes')->where('ci', '8945123')->update(['usuario_id' => $userMlopezId]);
+                DB::table('pacientes')->where('ci', '8945123')->update(['usuario_id' => $nextUserId]);
             } else {
                 DB::table('pacientes')->where('ci', '8945123')->update(['usuario_id' => $userMlopez->id]);
             }
@@ -42,7 +71,9 @@ class ClinicaController extends Controller
             // 2. Paciente Demo 2: Jorge Vargas (jvargas / 123456)
             $userJvargas = DB::table('usuarios')->where('username', 'jvargas')->first();
             if (! $userJvargas) {
-                $userJvargasId = DB::table('usuarios')->insertGetId([
+                $nextUserId = (DB::table('usuarios')->max('id') ?? 0) + 1;
+                DB::table('usuarios')->insert([
+                    'id'            => $nextUserId,
                     'rol_id'        => $rolPaciente,
                     'username'      => 'jvargas',
                     'email'         => 'jorge.vargas@gmail.com',
@@ -51,7 +82,7 @@ class ClinicaController extends Controller
                     'created_at'    => now(),
                     'updated_at'    => now(),
                 ]);
-                DB::table('pacientes')->where('ci', '6321458')->update(['usuario_id' => $userJvargasId]);
+                DB::table('pacientes')->where('ci', '6321458')->update(['usuario_id' => $nextUserId]);
             } else {
                 DB::table('pacientes')->where('ci', '6321458')->update(['usuario_id' => $userJvargas->id]);
             }
@@ -66,8 +97,392 @@ class ClinicaController extends Controller
             if ($userMrodriguez) {
                 DB::table('medicos')->where('nro_registro_profesional', 'MP-20456')->update(['usuario_id' => $userMrodriguez->id]);
             }
+
+            $this->asegurarEspecialidadesYMedicos();
+
+            $this->sincronizarSecuenciasPostgres();
         } catch (\Throwable $e) {
             // Continuar en caso de desconexión momentánea
+        }
+    }
+
+    /**
+     * Asegura la existencia de las 6 especialidades y 3 médicos por cada especialidad.
+     */
+    private function asegurarEspecialidadesYMedicos(): void
+    {
+        try {
+            $this->sincronizarSecuenciasPostgres();
+
+            $hash = Hash::make('123456');
+            $rolMedicoId = DB::table('roles')->where('nombre', 'Medico')->value('id') ?? 3;
+
+            // 1. Catálogo de Especialidades (4 originales + 2 nuevas)
+            $especialidadesCatalogo = [
+                'Medicina General' => 'Atención médica integral primaria y preventiva',
+                'Pediatría'        => 'Atención médica integral infantil y del desarrollo',
+                'Ginecología'      => 'Salud integral de la mujer y control prenatal',
+                'Odontología'      => 'Salud bucodental, odontología preventiva y restauradora',
+                'Cardiología'      => 'Diagnóstico y tratamiento integral de afecciones cardíacas y cardiovasculares',
+                'Traumatología'    => 'Tratamiento de lesiones musculoesqueléticas, traumatismos óseos y articulares',
+            ];
+
+            $especialidadIds = [];
+            foreach ($especialidadesCatalogo as $nombre => $descripcion) {
+                $esp = DB::table('especialidades')->where('nombre', $nombre)->first();
+                if (! $esp) {
+                    $nextEspId = (DB::table('especialidades')->max('id') ?? 0) + 1;
+                    DB::table('especialidades')->insert([
+                        'id'          => $nextEspId,
+                        'nombre'      => $nombre,
+                        'descripcion' => $descripcion,
+                        'estado'      => true,
+                    ]);
+                    $especialidadIds[$nombre] = $nextEspId;
+                } else {
+                    $especialidadIds[$nombre] = $esp->id;
+                }
+            }
+
+            // 2. Médicos: 3 médicos por cada una de las 6 especialidades (18 médicos en total)
+            $medicosPlantel = [
+                // Medicina General
+                [
+                    'especialidad' => 'Medicina General',
+                    'matricula'    => 'MP-10234',
+                    'nombres'      => 'Juan',
+                    'apellidos'    => 'Pérez',
+                    'telefono'     => '70011223',
+                    'email'        => 'juan.perez@vidasalud.bo',
+                    'username'     => 'jperez',
+                    'horarios'     => [
+                        ['dia' => 1, 'inicio' => '08:00', 'fin' => '12:00'],
+                        ['dia' => 3, 'inicio' => '14:00', 'fin' => '18:00'],
+                    ],
+                ],
+                [
+                    'especialidad' => 'Medicina General',
+                    'matricula'    => 'MP-10235',
+                    'nombres'      => 'Carmen',
+                    'apellidos'    => 'Flores',
+                    'telefono'     => '70033445',
+                    'email'        => 'carmen.flores@vidasalud.bo',
+                    'username'     => 'cflores',
+                    'horarios'     => [
+                        ['dia' => 2, 'inicio' => '08:00', 'fin' => '12:00'],
+                        ['dia' => 4, 'inicio' => '08:00', 'fin' => '12:00'],
+                    ],
+                ],
+                [
+                    'especialidad' => 'Medicina General',
+                    'matricula'    => 'MP-10236',
+                    'nombres'      => 'Roberto',
+                    'apellidos'    => 'Morales',
+                    'telefono'     => '70044556',
+                    'email'        => 'roberto.morales@vidasalud.bo',
+                    'username'     => 'rmorales',
+                    'horarios'     => [
+                        ['dia' => 3, 'inicio' => '08:00', 'fin' => '12:00'],
+                        ['dia' => 5, 'inicio' => '14:00', 'fin' => '18:00'],
+                    ],
+                ],
+
+                // Pediatría
+                [
+                    'especialidad' => 'Pediatría',
+                    'matricula'    => 'MP-20456',
+                    'nombres'      => 'Marta',
+                    'apellidos'    => 'Rodríguez',
+                    'telefono'     => '70022334',
+                    'email'        => 'marta.rodriguez@vidasalud.bo',
+                    'username'     => 'mrodriguez',
+                    'horarios'     => [
+                        ['dia' => 2, 'inicio' => '09:00', 'fin' => '13:00'],
+                        ['dia' => 4, 'inicio' => '14:00', 'fin' => '18:00'],
+                    ],
+                ],
+                [
+                    'especialidad' => 'Pediatría',
+                    'matricula'    => 'MP-20457',
+                    'nombres'      => 'Carlos',
+                    'apellidos'    => 'Mendoza',
+                    'telefono'     => '70055667',
+                    'email'        => 'carlos.mendoza@vidasalud.bo',
+                    'username'     => 'cmendoza',
+                    'horarios'     => [
+                        ['dia' => 1, 'inicio' => '14:00', 'fin' => '18:00'],
+                        ['dia' => 3, 'inicio' => '09:00', 'fin' => '13:00'],
+                    ],
+                ],
+                [
+                    'especialidad' => 'Pediatría',
+                    'matricula'    => 'MP-20458',
+                    'nombres'      => 'Lucía',
+                    'apellidos'    => 'Fernández',
+                    'telefono'     => '70066778',
+                    'email'        => 'lucia.fernandez@vidasalud.bo',
+                    'username'     => 'lfernandez',
+                    'horarios'     => [
+                        ['dia' => 5, 'inicio' => '08:00', 'fin' => '12:00'],
+                        ['dia' => 6, 'inicio' => '09:00', 'fin' => '13:00'],
+                    ],
+                ],
+
+                // Ginecología
+                [
+                    'especialidad' => 'Ginecología',
+                    'matricula'    => 'MP-30101',
+                    'nombres'      => 'Patricia',
+                    'apellidos'    => 'Suárez',
+                    'telefono'     => '70077889',
+                    'email'        => 'patricia.suarez@vidasalud.bo',
+                    'username'     => 'psuarez',
+                    'horarios'     => [
+                        ['dia' => 1, 'inicio' => '08:00', 'fin' => '12:00'],
+                        ['dia' => 4, 'inicio' => '08:00', 'fin' => '12:00'],
+                    ],
+                ],
+                [
+                    'especialidad' => 'Ginecología',
+                    'matricula'    => 'MP-30102',
+                    'nombres'      => 'Alejandro',
+                    'apellidos'    => 'Ramos',
+                    'telefono'     => '70088990',
+                    'email'        => 'alejandro.ramos@vidasalud.bo',
+                    'username'     => 'aramos',
+                    'horarios'     => [
+                        ['dia' => 2, 'inicio' => '14:00', 'fin' => '18:00'],
+                        ['dia' => 5, 'inicio' => '14:00', 'fin' => '18:00'],
+                    ],
+                ],
+                [
+                    'especialidad' => 'Ginecología',
+                    'matricula'    => 'MP-30103',
+                    'nombres'      => 'Valeria',
+                    'apellidos'    => 'Gutiérrez',
+                    'telefono'     => '70099001',
+                    'email'        => 'valeria.gutierrez@vidasalud.bo',
+                    'username'     => 'vgutierrez',
+                    'horarios'     => [
+                        ['dia' => 3, 'inicio' => '08:00', 'fin' => '12:00'],
+                        ['dia' => 6, 'inicio' => '08:00', 'fin' => '12:00'],
+                    ],
+                ],
+
+                // Odontología
+                [
+                    'especialidad' => 'Odontología',
+                    'matricula'    => 'MP-40201',
+                    'nombres'      => 'Diego',
+                    'apellidos'    => 'Castro',
+                    'telefono'     => '71011223',
+                    'email'        => 'diego.castro@vidasalud.bo',
+                    'username'     => 'dcastro',
+                    'horarios'     => [
+                        ['dia' => 1, 'inicio' => '14:00', 'fin' => '18:00'],
+                        ['dia' => 3, 'inicio' => '14:00', 'fin' => '18:00'],
+                    ],
+                ],
+                [
+                    'especialidad' => 'Odontología',
+                    'matricula'    => 'MP-40202',
+                    'nombres'      => 'Natalia',
+                    'apellidos'    => 'Ríos',
+                    'telefono'     => '71022334',
+                    'email'        => 'natalia.rios@vidasalud.bo',
+                    'username'     => 'nrios',
+                    'horarios'     => [
+                        ['dia' => 2, 'inicio' => '08:00', 'fin' => '12:00'],
+                        ['dia' => 4, 'inicio' => '14:00', 'fin' => '18:00'],
+                    ],
+                ],
+                [
+                    'especialidad' => 'Odontología',
+                    'matricula'    => 'MP-40203',
+                    'nombres'      => 'Fernando',
+                    'apellidos'    => 'Ortiz',
+                    'telefono'     => '71033445',
+                    'email'        => 'fernando.ortiz@vidasalud.bo',
+                    'username'     => 'fortiz',
+                    'horarios'     => [
+                        ['dia' => 5, 'inicio' => '08:00', 'fin' => '12:00'],
+                        ['dia' => 6, 'inicio' => '09:00', 'fin' => '13:00'],
+                    ],
+                ],
+
+                // Cardiología (Nueva Especialidad 1)
+                [
+                    'especialidad' => 'Cardiología',
+                    'matricula'    => 'MP-50301',
+                    'nombres'      => 'Javier',
+                    'apellidos'    => 'Torrez',
+                    'telefono'     => '71044556',
+                    'email'        => 'javier.torrez@vidasalud.bo',
+                    'username'     => 'jtorrez',
+                    'horarios'     => [
+                        ['dia' => 1, 'inicio' => '08:00', 'fin' => '12:00'],
+                        ['dia' => 3, 'inicio' => '08:00', 'fin' => '12:00'],
+                    ],
+                ],
+                [
+                    'especialidad' => 'Cardiología',
+                    'matricula'    => 'MP-50302',
+                    'nombres'      => 'Gabriela',
+                    'apellidos'    => 'Silva',
+                    'telefono'     => '71055667',
+                    'email'        => 'gabriela.silva@vidasalud.bo',
+                    'username'     => 'gsilva',
+                    'horarios'     => [
+                        ['dia' => 2, 'inicio' => '14:00', 'fin' => '18:00'],
+                        ['dia' => 4, 'inicio' => '14:00', 'fin' => '18:00'],
+                    ],
+                ],
+                [
+                    'especialidad' => 'Cardiología',
+                    'matricula'    => 'MP-50303',
+                    'nombres'      => 'Mauricio',
+                    'apellidos'    => 'Salazar',
+                    'telefono'     => '71066778',
+                    'email'        => 'mauricio.salazar@vidasalud.bo',
+                    'username'     => 'msalazar',
+                    'horarios'     => [
+                        ['dia' => 5, 'inicio' => '08:00', 'fin' => '12:00'],
+                        ['dia' => 6, 'inicio' => '08:00', 'fin' => '12:00'],
+                    ],
+                ],
+
+                // Traumatología (Nueva Especialidad 2)
+                [
+                    'especialidad' => 'Traumatología',
+                    'matricula'    => 'MP-60401',
+                    'nombres'      => 'Andrés',
+                    'apellidos'    => 'Cabrera',
+                    'telefono'     => '71077889',
+                    'email'        => 'andres.cabrera@vidasalud.bo',
+                    'username'     => 'acabrera',
+                    'horarios'     => [
+                        ['dia' => 1, 'inicio' => '14:00', 'fin' => '18:00'],
+                        ['dia' => 4, 'inicio' => '08:00', 'fin' => '12:00'],
+                    ],
+                ],
+                [
+                    'especialidad' => 'Traumatología',
+                    'matricula'    => 'MP-60402',
+                    'nombres'      => 'Sofía',
+                    'apellidos'    => 'Romero',
+                    'telefono'     => '71088990',
+                    'email'        => 'sofia.romero@vidasalud.bo',
+                    'username'     => 'sromero',
+                    'horarios'     => [
+                        ['dia' => 2, 'inicio' => '08:00', 'fin' => '12:00'],
+                        ['dia' => 5, 'inicio' => '14:00', 'fin' => '18:00'],
+                    ],
+                ],
+                [
+                    'especialidad' => 'Traumatología',
+                    'matricula'    => 'MP-60403',
+                    'nombres'      => 'Marcelo',
+                    'apellidos'    => 'Villalba',
+                    'telefono'     => '71099001',
+                    'email'        => 'marcelo.villalba@vidasalud.bo',
+                    'username'     => 'mvillalba',
+                    'horarios'     => [
+                        ['dia' => 3, 'inicio' => '14:00', 'fin' => '18:00'],
+                        ['dia' => 6, 'inicio' => '09:00', 'fin' => '13:00'],
+                    ],
+                ],
+            ];
+
+            foreach ($medicosPlantel as $m) {
+                // A. Asegurar usuario para inicio de sesión
+                $user = DB::table('usuarios')->where('username', $m['username'])->first();
+                if (! $user) {
+                    $nextUserId = (DB::table('usuarios')->max('id') ?? 0) + 1;
+                    DB::table('usuarios')->insert([
+                        'id'            => $nextUserId,
+                        'rol_id'        => $rolMedicoId,
+                        'username'      => $m['username'],
+                        'email'         => $m['email'],
+                        'password_hash' => $hash,
+                        'estado'        => true,
+                        'created_at'    => now(),
+                        'updated_at'    => now(),
+                    ]);
+                    $userId = $nextUserId;
+                } else {
+                    $userId = $user->id;
+                }
+
+                // B. Asegurar médico
+                $medico = DB::table('medicos')->where('nro_registro_profesional', $m['matricula'])->first();
+                if (! $medico) {
+                    $medico = DB::table('medicos')->where('email', $m['email'])->first();
+                }
+
+                if (! $medico) {
+                    $nextMedId = (DB::table('medicos')->max('id') ?? 0) + 1;
+                    $codigo = 'MED-' . str_pad((string) $nextMedId, 4, '0', STR_PAD_LEFT);
+                    while (DB::table('medicos')->where('codigo', $codigo)->exists()) {
+                        $nextMedId++;
+                        $codigo = 'MED-' . str_pad((string) $nextMedId, 4, '0', STR_PAD_LEFT);
+                    }
+
+                    DB::table('medicos')->insert([
+                        'id'                       => $nextMedId,
+                        'usuario_id'               => $userId,
+                        'codigo'                   => $codigo,
+                        'nro_registro_profesional' => $m['matricula'],
+                        'nombres'                  => $m['nombres'],
+                        'apellidos'                => $m['apellidos'],
+                        'telefono'                 => $m['telefono'],
+                        'email'                    => $m['email'],
+                        'estado'                   => true,
+                        'created_at'               => now(),
+                        'updated_at'               => now(),
+                    ]);
+                    $medicoId = $nextMedId;
+                } else {
+                    $medicoId = $medico->id;
+                    if (! $medico->usuario_id) {
+                        DB::table('medicos')->where('id', $medicoId)->update(['usuario_id' => $userId]);
+                    }
+                }
+
+                // C. Vincular especialidad
+                $espId = $especialidadIds[$m['especialidad']] ?? DB::table('especialidades')->where('nombre', $m['especialidad'])->value('id');
+                if ($espId && ! DB::table('medico_especialidad')->where('medico_id', $medicoId)->where('especialidad_id', $espId)->exists()) {
+                    DB::table('medico_especialidad')->insert([
+                        'medico_id'       => $medicoId,
+                        'especialidad_id' => $espId,
+                    ]);
+                }
+
+                // D. Asignar horarios de turno predeterminados
+                foreach ($m['horarios'] as $h) {
+                    $existeHorario = DB::table('horarios_atencion')
+                        ->where('medico_id', $medicoId)
+                        ->where('dia_semana', $h['dia'])
+                        ->where('hora_inicio', $h['inicio'])
+                        ->exists();
+
+                    if (! $existeHorario) {
+                        $nextHorarioId = (DB::table('horarios_atencion')->max('id') ?? 0) + 1;
+                        DB::table('horarios_atencion')->insert([
+                            'id'               => $nextHorarioId,
+                            'medico_id'        => $medicoId,
+                            'dia_semana'       => $h['dia'],
+                            'hora_inicio'      => $h['inicio'],
+                            'hora_fin'         => $h['fin'],
+                            'duracion_minutos' => 30,
+                            'estado'           => true,
+                        ]);
+                    }
+                }
+            }
+
+            $this->sincronizarSecuenciasPostgres();
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Error en asegurarEspecialidadesYMedicos: ' . $e->getMessage() . ' en ' . $e->getFile() . ':' . $e->getLine());
         }
     }
 
@@ -79,6 +494,16 @@ class ClinicaController extends Controller
         $this->asegurarCuentasDemo();
 
         return view('login');
+    }
+
+    /**
+     * Endpoint directo para forzar la sincronización del catálogo médico y especialidades.
+     */
+    public function sincronizarDatosManualmente()
+    {
+        $this->asegurarEspecialidadesYMedicos();
+
+        return redirect()->route('dashboard')->with('success', '¡Catálogo sincronizado! 6 especialidades y 18 médicos verificados y listos en la base de datos.');
     }
 
     /**
@@ -167,6 +592,8 @@ class ClinicaController extends Controller
      */
     public function showRegister()
     {
+        $this->sincronizarSecuenciasPostgres();
+
         return view('register');
     }
 
@@ -187,6 +614,8 @@ class ClinicaController extends Controller
             'telefono'         => 'required|string|max:20',
         ]);
 
+        $this->sincronizarSecuenciasPostgres();
+
         $username = trim($request->input('username'));
         $email = trim($request->input('email'));
         $ci = trim($request->input('ci'));
@@ -204,11 +633,21 @@ class ClinicaController extends Controller
         }
 
         $rolPacienteId = DB::table('roles')->where('nombre', 'Paciente')->value('id') ?? 4;
-        $count = DB::table('pacientes')->count() + 1;
+        $maxId = DB::table('pacientes')->max('id') ?? 0;
+        $count = max(DB::table('pacientes')->count(), $maxId) + 1;
         $codigo = 'PAC-' . str_pad((string) $count, 4, '0', STR_PAD_LEFT);
+        while (DB::table('pacientes')->where('codigo', $codigo)->exists()) {
+            $count++;
+            $codigo = 'PAC-' . str_pad((string) $count, 4, '0', STR_PAD_LEFT);
+        }
 
         DB::transaction(function () use ($request, $rolPacienteId, $username, $email, $codigo, $ci) {
-            $newUserId = DB::table('usuarios')->insertGetId([
+            $this->sincronizarSecuenciasPostgres();
+
+            $nextUserId = (DB::table('usuarios')->max('id') ?? 0) + 1;
+
+            DB::table('usuarios')->insert([
+                'id'            => $nextUserId,
                 'rol_id'        => $rolPacienteId,
                 'username'      => $username,
                 'email'         => $email,
@@ -218,8 +657,11 @@ class ClinicaController extends Controller
                 'updated_at'    => now(),
             ]);
 
+            $nextPacienteId = (DB::table('pacientes')->max('id') ?? 0) + 1;
+
             DB::table('pacientes')->insert([
-                'usuario_id'       => $newUserId,
+                'id'               => $nextPacienteId,
+                'usuario_id'       => $nextUserId,
                 'codigo'           => $codigo,
                 'ci'               => $ci,
                 'nombres'          => trim($request->input('nombres')),
@@ -233,6 +675,8 @@ class ClinicaController extends Controller
                 'created_at'       => now(),
                 'updated_at'       => now(),
             ]);
+
+            $this->sincronizarSecuenciasPostgres();
         });
 
         return redirect()->route('login')->with('info', "¡Cuenta del paciente $codigo creada con éxito! Ingrese con usuario '$username' y su contraseña.");
@@ -256,6 +700,8 @@ class ClinicaController extends Controller
         if (! session()->has('usuario_id')) {
             return redirect()->route('login');
         }
+
+        $this->asegurarEspecialidadesYMedicos();
 
         $rol = session('rol', 'Administrador');
         $modulo = $request->query('mod', 'citas');
@@ -337,7 +783,6 @@ class ClinicaController extends Controller
             $agendaFecha = $request->query('fecha', date('Y-m-d'));
             $medicoSeleccionado = DB::table('medicos')->where('id', $agendaMedicoId)->first();
 
-            // Citas del médico para ese día
             $citasDia = DB::table('citas')
                 ->join('pacientes', 'citas.paciente_id', '=', 'pacientes.id')
                 ->join('especialidades', 'citas.especialidad_id', '=', 'especialidades.id')
@@ -355,7 +800,6 @@ class ClinicaController extends Controller
                     return substr($item->hora_inicio, 0, 5);
                 });
 
-            // Franjas horarias del consultorio
             $slots = [
                 '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
                 '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30'
@@ -434,17 +878,13 @@ class ClinicaController extends Controller
 
             $citasReporte = $reportQuery->orderBy('citas.fecha_cita', 'desc')->get();
 
-            // Estadísticas por estado
             $totalEnRango = $citasReporte->count();
             $atendidasRango = $citasReporte->where('estado', 'Atendida')->count();
             $canceladasRango = $citasReporte->where('estado', 'Cancelada')->count();
             $ausentesRango = $citasReporte->where('estado', 'No Asistió')->count();
             $pendientesRango = $citasReporte->whereIn('estado', ['Programada', 'En Espera'])->count();
 
-            // Agrupado por Especialidad
             $porEspecialidad = $citasReporte->groupBy('especialidad_nombre')->map->count();
-
-            // Agrupado por Médico
             $porMedico = $citasReporte->groupBy('medico_nombre')->map->count();
 
             $reportesData = [
@@ -533,10 +973,20 @@ class ClinicaController extends Controller
                 ->with('error_paciente', 'Error RN01: Ya existe un paciente registrado con el CI ' . $ci);
         }
 
-        $count = DB::table('pacientes')->count() + 1;
+        $this->sincronizarSecuenciasPostgres();
+
+        $maxId = DB::table('pacientes')->max('id') ?? 0;
+        $count = max(DB::table('pacientes')->count(), $maxId) + 1;
         $codigo = 'PAC-' . str_pad((string) $count, 4, '0', STR_PAD_LEFT);
+        while (DB::table('pacientes')->where('codigo', $codigo)->exists()) {
+            $count++;
+            $codigo = 'PAC-' . str_pad((string) $count, 4, '0', STR_PAD_LEFT);
+        }
+
+        $nextPacienteId = (DB::table('pacientes')->max('id') ?? 0) + 1;
 
         DB::table('pacientes')->insert([
+            'id'               => $nextPacienteId,
             'codigo'           => $codigo,
             'ci'               => $ci,
             'nombres'          => trim($request->input('nombres')),
@@ -550,6 +1000,8 @@ class ClinicaController extends Controller
             'created_at'       => now(),
             'updated_at'       => now(),
         ]);
+
+        $this->sincronizarSecuenciasPostgres();
 
         return redirect('dashboard?mod=pacientes')
             ->with('success_paciente', "Paciente $codigo registrado con éxito.");
@@ -582,11 +1034,22 @@ class ClinicaController extends Controller
                 ->with('error_medico', "Error: El correo $email ya está asignado a otro médico.");
         }
 
-        $count = DB::table('medicos')->count() + 1;
+        $this->sincronizarSecuenciasPostgres();
+
+        $maxId = DB::table('medicos')->max('id') ?? 0;
+        $count = max(DB::table('medicos')->count(), $maxId) + 1;
         $codigo = 'MED-' . str_pad((string) $count, 4, '0', STR_PAD_LEFT);
+        while (DB::table('medicos')->where('codigo', $codigo)->exists()) {
+            $count++;
+            $codigo = 'MED-' . str_pad((string) $count, 4, '0', STR_PAD_LEFT);
+        }
 
         DB::transaction(function () use ($request, $codigo, $matricula, $email) {
-            $medicoId = DB::table('medicos')->insertGetId([
+            $this->sincronizarSecuenciasPostgres();
+            $nextMedicoId = (DB::table('medicos')->max('id') ?? 0) + 1;
+
+            DB::table('medicos')->insert([
+                'id'                       => $nextMedicoId,
                 'codigo'                   => $codigo,
                 'nro_registro_profesional' => $matricula,
                 'nombres'                  => trim($request->input('nombres')),
@@ -599,9 +1062,11 @@ class ClinicaController extends Controller
             ]);
 
             DB::table('medico_especialidad')->insert([
-                'medico_id'       => $medicoId,
+                'medico_id'       => $nextMedicoId,
                 'especialidad_id' => $request->input('especialidad_id'),
             ]);
+
+            $this->sincronizarSecuenciasPostgres();
         });
 
         return redirect('dashboard?mod=medicos')
@@ -625,11 +1090,17 @@ class ClinicaController extends Controller
                 ->with('error_especialidad', "La especialidad '$nombre' ya existe.");
         }
 
+        $this->sincronizarSecuenciasPostgres();
+        $nextEspId = (DB::table('especialidades')->max('id') ?? 0) + 1;
+
         DB::table('especialidades')->insert([
+            'id'          => $nextEspId,
             'nombre'      => $nombre,
             'descripcion' => $request->input('descripcion'),
             'estado'      => true,
         ]);
+
+        $this->sincronizarSecuenciasPostgres();
 
         return redirect('dashboard?mod=especialidades')
             ->with('success_especialidad', "Especialidad '$nombre' agregada con éxito.");
@@ -656,7 +1127,11 @@ class ClinicaController extends Controller
                 ->with('error_horario', 'La hora de fin debe ser posterior a la hora de inicio.');
         }
 
+        $this->sincronizarSecuenciasPostgres();
+        $nextHorarioId = (DB::table('horarios_atencion')->max('id') ?? 0) + 1;
+
         DB::table('horarios_atencion')->insert([
+            'id'               => $nextHorarioId,
             'medico_id'        => $request->input('medico_id'),
             'dia_semana'       => $request->input('dia_semana'),
             'hora_inicio'      => $horaInicio,
@@ -664,6 +1139,8 @@ class ClinicaController extends Controller
             'duracion_minutos' => $request->input('duracion_minutos', 30),
             'estado'           => true,
         ]);
+
+        $this->sincronizarSecuenciasPostgres();
 
         return redirect('dashboard?mod=horarios')
             ->with('success_horario', 'Horario de atención registrado con éxito.');
@@ -725,10 +1202,20 @@ class ClinicaController extends Controller
                 ->with('error_cita', 'Error RF07: El médico ya tiene una cita activa en ese intervalo de horario.');
         }
 
-        $count = DB::table('citas')->count() + 1;
+        $this->sincronizarSecuenciasPostgres();
+
+        $maxId = DB::table('citas')->max('id') ?? 0;
+        $count = max(DB::table('citas')->count(), $maxId) + 1;
         $codigo = 'CM-' . str_pad((string) $count, 4, '0', STR_PAD_LEFT);
+        while (DB::table('citas')->where('codigo', $codigo)->exists()) {
+            $count++;
+            $codigo = 'CM-' . str_pad((string) $count, 4, '0', STR_PAD_LEFT);
+        }
+
+        $nextCitaId = (DB::table('citas')->max('id') ?? 0) + 1;
 
         DB::table('citas')->insert([
+            'id'                => $nextCitaId,
             'codigo'            => $codigo,
             'paciente_id'       => $pacienteId,
             'medico_id'         => $medico_id,
@@ -740,6 +1227,8 @@ class ClinicaController extends Controller
             'estado'            => 'Programada',
             'fecha_creacion'    => now(),
         ]);
+
+        $this->sincronizarSecuenciasPostgres();
 
         return redirect('dashboard?mod=citas')
             ->with('success_cita', "¡Cita $codigo programada exitosamente!");

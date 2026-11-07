@@ -8,8 +8,8 @@
                         <i class="bi bi-person-plus-fill fs-5"></i>
                     </div>
                     <div>
-                        <h6 class="fw-bold mb-0 text-dark">Registrar Nuevo Paciente (CU02 / RF02)</h6>
-                        <span class="text-muted small">Validación de cédula de identidad única (RN01) y asignación automática de código correlativo</span>
+                        <h6 class="fw-bold mb-0 text-dark">Registrar Nuevo Paciente {{ session('rol') === 'Administrador' ? '(CU02 / RF02)' : '' }}</h6>
+                        <span class="text-muted small">{{ session('rol') === 'Administrador' ? 'Validación de cédula de identidad única (RN01) y asignación automática de código correlativo' : 'Validación de cédula de identidad única y asignación de código' }}</span>
                     </div>
                 </div>
             </div>

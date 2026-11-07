@@ -325,7 +325,7 @@
         </div>
 
         <ul class="nav nav-pills flex-column gap-1">
-            <!-- CU06/CU07: Citas Médicas -->
+            <!-- Citas Médicas -->
             <li class="nav-item">
                 <a href="{{ route('dashboard', ['mod' => 'citas']) }}"
                    class="nav-link {{ ($modulo ?? 'citas') == 'citas' ? 'active' : '' }}">
@@ -333,25 +333,29 @@
                     <span>
                         @if($rol === 'Paciente')
                             Mis Citas Médicas
-                        @else
+                        @elseif($rol === 'Medico')
+                            Mi Agenda Médica
+                        @elseif($rol === 'Administrador')
                             CU06/07. Citas Médicas
+                        @else
+                            Citas Médicas
                         @endif
                     </span>
                 </a>
             </li>
 
-            <!-- CU11: Consultar Agenda Médica (Admin, Recepción, Médico) -->
+            <!-- Agenda Médica (Admin, Recepción, Médico) -->
             @if(in_array($rol, ['Administrador', 'Recepcionista', 'Medico']))
             <li class="nav-item">
                 <a href="{{ route('dashboard', ['mod' => 'agenda']) }}"
                    class="nav-link {{ ($modulo ?? '') == 'agenda' ? 'active' : '' }}">
                     <i class="bi bi-calendar2-range"></i>
-                    <span>CU11. Agenda Médica</span>
+                    <span>{{ $rol === 'Administrador' ? 'CU11. Agenda Médica' : 'Agenda Médica' }}</span>
                 </a>
             </li>
             @endif
 
-            <!-- CU12: Consultar Historial de Citas por Paciente (Todos los roles) -->
+            <!-- Historial de Citas por Paciente (Todos los roles) -->
             <li class="nav-item">
                 <a href="{{ route('dashboard', ['mod' => 'historial']) }}"
                    class="nav-link {{ ($modulo ?? '') == 'historial' ? 'active' : '' }}">
@@ -359,43 +363,45 @@
                     <span>
                         @if($rol === 'Paciente')
                             Mi Historial Clínico
-                        @else
+                        @elseif($rol === 'Administrador')
                             CU12. Historial Paciente
+                        @else
+                            Historial Paciente
                         @endif
                     </span>
                 </a>
             </li>
 
-            <!-- CU13: Generar Reportes Administrativos (Admin y Recepción) -->
+            <!-- Reportes Administrativos (Admin y Recepción) -->
             @if(in_array($rol, ['Administrador', 'Recepcionista']))
             <li class="nav-item">
                 <a href="{{ route('dashboard', ['mod' => 'reportes']) }}"
                    class="nav-link {{ ($modulo ?? '') == 'reportes' ? 'active' : '' }}">
                     <i class="bi bi-file-earmark-bar-graph"></i>
-                    <span>CU13. Reportes Administrativos</span>
+                    <span>{{ $rol === 'Administrador' ? 'CU13. Reportes Administrativos' : 'Reportes Administrativos' }}</span>
                 </a>
             </li>
             @endif
 
-            <!-- Separador para CU02 - CU05 -->
+            <!-- Separador para Catálogos y Turnos -->
             @if(in_array($rol, ['Administrador', 'Recepcionista']))
             <div class="px-3 mt-3 mb-1 text-uppercase text-white-50 small fw-bold" style="font-size: 0.65rem; letter-spacing: 0.8px;">
                 Catálogos y Turnos
             </div>
             @endif
 
-            <!-- CU02: Gestión de Pacientes -->
+            <!-- Gestión de Pacientes -->
             @if(in_array($rol, ['Administrador', 'Recepcionista']))
             <li class="nav-item">
                 <a href="{{ route('dashboard', ['mod' => 'pacientes']) }}"
                    class="nav-link {{ ($modulo ?? '') == 'pacientes' ? 'active' : '' }}">
                     <i class="bi bi-people"></i>
-                    <span>CU02. Pacientes</span>
+                    <span>{{ $rol === 'Administrador' ? 'CU02. Pacientes' : 'Pacientes' }}</span>
                 </a>
             </li>
             @endif
 
-            <!-- CU03: Gestión de Médicos (Admin) -->
+            <!-- Gestión de Médicos (Admin) -->
             @if($rol === 'Administrador')
             <li class="nav-item">
                 <a href="{{ route('dashboard', ['mod' => 'medicos']) }}"
@@ -406,7 +412,7 @@
             </li>
             @endif
 
-            <!-- CU04: Especialidades (Admin) -->
+            <!-- Especialidades (Admin) -->
             @if($rol === 'Administrador')
             <li class="nav-item">
                 <a href="{{ route('dashboard', ['mod' => 'especialidades']) }}"
@@ -417,7 +423,7 @@
             </li>
             @endif
 
-            <!-- CU05: Horarios de Atención -->
+            <!-- Horarios de Atención -->
             @if(in_array($rol, ['Administrador', 'Recepcionista', 'Medico']))
             <li class="nav-item">
                 <a href="{{ route('dashboard', ['mod' => 'horarios']) }}"
@@ -426,8 +432,10 @@
                     <span>
                         @if($rol === 'Medico')
                             Mis Horarios de Turno
-                        @else
+                        @elseif($rol === 'Administrador')
                             CU05. Horarios Atención
+                        @else
+                            Horarios de Atención
                         @endif
                     </span>
                 </a>
