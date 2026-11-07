@@ -39,3 +39,6 @@ Route::post('/citas/cancelar', [ClinicaController::class, 'cancelarCita'])->name
 
 // CU10: Controlar Asistencia de Cita (En Espera, Atendida, No Asistió)
 Route::post('/citas/controlar-asistencia', [ClinicaController::class, 'controlarAsistencia'])->name('citas.controlarAsistencia');
+
+// Perfil de Paciente (Edición y Actualización de Información)
+Route::post('/perfil/actualizar', [ClinicaController::class, 'actualizarPerfilPaciente'])->name('perfil.actualizar');

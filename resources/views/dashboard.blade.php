@@ -12,6 +12,7 @@
         'medicos'        => $esAdmin ? 'CU03: Plantel Médico Especializado' : 'Plantel Médico Especializado',
         'especialidades' => $esAdmin ? 'CU04: Especialidades Médicas' : 'Especialidades Médicas',
         'horarios'       => $esAdmin ? 'CU05: Horarios de Atención Médica' : 'Horarios de Atención Médica',
+        'perfil'         => 'Mi Perfil de Paciente',
     ];
     $moduloActual = $modulo ?? 'citas';
     $tituloActual = $titulos[$moduloActual] ?? 'Panel de Control';
@@ -22,7 +23,7 @@
 
 @section('content')
     <!-- Banner Personalizado para Paciente -->
-    @if($rol === 'Paciente')
+    @if($rol === 'Paciente' && $moduloActual !== 'perfil')
         <div class="card border-0 bg-primary bg-opacity-10 rounded-4 p-3 p-sm-4 mb-3 mb-sm-4 shadow-sm d-print-none">
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
                 <div class="d-flex align-items-center gap-3">
@@ -83,6 +84,8 @@
         @include('modules.especialidades')
     @elseif($moduloActual === 'horarios')
         @include('modules.horarios')
+    @elseif($moduloActual === 'perfil')
+        @include('modules.perfil')
     @else
         @include('modules.citas')
     @endif

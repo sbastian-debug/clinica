@@ -717,7 +717,7 @@ class ClinicaController extends Controller
         $modulo = $request->query('mod', 'citas');
 
         // Restricciones de navegación por Rol
-        if ($rol === 'Paciente' && ! in_array($modulo, ['citas', 'historial'])) {
+        if ($rol === 'Paciente' && ! in_array($modulo, ['citas', 'historial', 'perfil'])) {
             $modulo = 'citas';
         }
         if ($rol === 'Medico' && ! in_array($modulo, ['citas', 'agenda', 'historial', 'horarios'])) {
@@ -948,6 +948,22 @@ class ClinicaController extends Controller
             ];
         }
 
+        // Datos del Perfil Propio del Paciente
+        $perfilPaciente = null;
+        if ($rol === 'Paciente') {
+            $pacienteId = session('paciente_id') ?? DB::table('pacientes')->where('usuario_id', session('usuario_id'))->value('id');
+            if (! $pacienteId) {
+                $pacienteId = DB::table('pacientes')->where('email', session('email'))->value('id');
+            }
+            if ($pacienteId) {
+                $perfilPaciente = DB::table('pacientes')
+                    ->leftJoin('usuarios', 'pacientes.usuario_id', '=', 'usuarios.id')
+                    ->where('pacientes.id', $pacienteId)
+                    ->select('pacientes.*', 'usuarios.username', 'usuarios.email as cuenta_email')
+                    ->first();
+            }
+        }
+
         return view('dashboard', compact(
             'modulo',
             'rol',
@@ -959,7 +975,8 @@ class ClinicaController extends Controller
             'citas',
             'agendaData',
             'historialData',
-            'reportesData'
+            'reportesData',
+            'perfilPaciente'
         ));
     }
 
@@ -979,7 +996,7 @@ class ClinicaController extends Controller
         $ci = trim($request->input('ci'));
 
         if (DB::table('pacientes')->where('ci', $ci)->exists()) {
-            return redirect('dashboard?mod=pacientes')
+            return redirect()->route('dashboard', ['mod' => 'pacientes'])
                 ->with('error_paciente', 'Error RN01: Ya existe un paciente registrado con el CI ' . $ci);
         }
 
@@ -1011,7 +1028,7 @@ class ClinicaController extends Controller
 
         $this->sincronizarSecuenciasPostgres('pacientes');
 
-        return redirect('dashboard?mod=pacientes')
+        return redirect()->route('dashboard', ['mod' => 'pacientes'])
             ->with('success_paciente', "Paciente $codigo registrado con éxito.");
     }
 
@@ -1033,12 +1050,12 @@ class ClinicaController extends Controller
         $email = trim($request->input('email'));
 
         if (DB::table('medicos')->where('nro_registro_profesional', $matricula)->exists()) {
-            return redirect('dashboard?mod=medicos')
+            return redirect()->route('dashboard', ['mod' => 'medicos'])
                 ->with('error_medico', "Error RN02: Ya existe un médico con la matrícula $matricula.");
         }
 
         if (DB::table('medicos')->where('email', $email)->exists()) {
-            return redirect('dashboard?mod=medicos')
+            return redirect()->route('dashboard', ['mod' => 'medicos'])
                 ->with('error_medico', "Error: El correo $email ya está asignado a otro médico.");
         }
 
@@ -1074,7 +1091,7 @@ class ClinicaController extends Controller
             $this->sincronizarSecuenciasPostgres('medicos');
         });
 
-        return redirect('dashboard?mod=medicos')
+        return redirect()->route('dashboard', ['mod' => 'medicos'])
             ->with('success_medico', "Médico $codigo registrado exitosamente.");
     }
 
@@ -1091,7 +1108,7 @@ class ClinicaController extends Controller
         $nombre = trim($request->input('nombre'));
 
         if (DB::table('especialidades')->where('nombre', $nombre)->exists()) {
-            return redirect('dashboard?mod=especialidades')
+            return redirect()->route('dashboard', ['mod' => 'especialidades'])
                 ->with('error_especialidad', "La especialidad '$nombre' ya existe.");
         }
 
@@ -1106,7 +1123,7 @@ class ClinicaController extends Controller
 
         $this->sincronizarSecuenciasPostgres('especialidades');
 
-        return redirect('dashboard?mod=especialidades')
+        return redirect()->route('dashboard', ['mod' => 'especialidades'])
             ->with('success_especialidad', "Especialidad '$nombre' agregada con éxito.");
     }
 
@@ -1127,7 +1144,7 @@ class ClinicaController extends Controller
         $horaFin = $request->input('hora_fin');
 
         if ($horaFin <= $horaInicio) {
-            return redirect('dashboard?mod=horarios')
+            return redirect()->route('dashboard', ['mod' => 'horarios'])
                 ->with('error_horario', 'La hora de fin debe ser posterior a la hora de inicio.');
         }
 
@@ -1145,7 +1162,7 @@ class ClinicaController extends Controller
 
         $this->sincronizarSecuenciasPostgres('horarios_atencion');
 
-        return redirect('dashboard?mod=horarios')
+        return redirect()->route('dashboard', ['mod' => 'horarios'])
             ->with('success_horario', 'Horario de atención registrado con éxito.');
     }
 
@@ -1173,7 +1190,7 @@ class ClinicaController extends Controller
         ]);
 
         if (! $pacienteId) {
-            return redirect('dashboard?mod=citas')
+            return redirect()->route('dashboard', ['mod' => 'citas'])
                 ->with('error_cita', 'Error: No se pudo identificar al paciente para agendar la cita.');
         }
 
@@ -1185,7 +1202,7 @@ class ClinicaController extends Controller
 
         // RN06: No citas pasadas
         if ($fecha < date('Y-m-d')) {
-            return redirect('dashboard?mod=citas')
+            return redirect()->route('dashboard', ['mod' => 'citas'])
                 ->with('error_cita', 'Error RN06: No se pueden programar citas médicas en fechas pasadas.');
         }
 
@@ -1201,7 +1218,7 @@ class ClinicaController extends Controller
             ->exists();
 
         if ($conflicto) {
-            return redirect('dashboard?mod=citas')
+            return redirect()->route('dashboard', ['mod' => 'citas'])
                 ->with('error_cita', 'Error RF07: El médico ya tiene una cita activa en ese intervalo de horario.');
         }
 
@@ -1231,7 +1248,7 @@ class ClinicaController extends Controller
 
         $this->sincronizarSecuenciasPostgres('citas');
 
-        return redirect('dashboard?mod=citas')
+        return redirect()->route('dashboard', ['mod' => 'citas'])
             ->with('success_cita', "¡Cita $codigo programada exitosamente!");
     }
 
@@ -1355,5 +1372,129 @@ class ClinicaController extends Controller
         }
 
         return $this->controlarAsistencia($request);
+    }
+
+    /**
+     * Actualizar Perfil Propio del Paciente.
+     */
+    public function actualizarPerfilPaciente(Request $request)
+    {
+        $rol = session('rol');
+        if ($rol !== 'Paciente') {
+            return redirect()->route('dashboard')->with('error', 'Solo los pacientes pueden editar su perfil personal desde este módulo.');
+        }
+
+        $usuarioId = session('usuario_id');
+        $pacienteId = session('paciente_id') ?? DB::table('pacientes')->where('usuario_id', $usuarioId)->value('id');
+        if (! $pacienteId) {
+            $pacienteId = DB::table('pacientes')->where('email', session('email'))->value('id');
+        }
+
+        if (! $pacienteId) {
+            return redirect()->route('dashboard')->with('error', 'No se encontró el expediente del paciente.');
+        }
+
+        $request->validate([
+            'ci'               => 'required|string|max:20',
+            'nombres'          => 'required|string|max:100',
+            'apellidos'        => 'required|string|max:100',
+            'fecha_nacimiento' => 'required|date',
+            'sexo'             => 'required|in:M,F',
+            'telefono'         => 'required|string|max:20',
+            'email'            => 'required|email|max:100',
+            'direccion'        => 'nullable|string|max:255',
+            'username'         => 'required|string|max:50',
+            'password'         => 'nullable|string|min:6',
+        ]);
+
+        $ci = trim($request->input('ci'));
+        $email = trim($request->input('email'));
+        $username = trim($request->input('username'));
+        $nombres = trim($request->input('nombres'));
+        $apellidos = trim($request->input('apellidos'));
+        $telefono = trim($request->input('telefono'));
+        $direccion = $request->filled('direccion') ? trim($request->input('direccion')) : null;
+        $fechaNacimiento = $request->input('fecha_nacimiento');
+        $sexo = $request->input('sexo');
+        $password = $request->input('password');
+
+        // Validar unicidad de CI en otros pacientes
+        $ciExistente = DB::table('pacientes')
+            ->where('ci', $ci)
+            ->where('id', '<>', $pacienteId)
+            ->exists();
+
+        if ($ciExistente) {
+            return redirect()->route('dashboard', ['mod' => 'perfil'])
+                ->with('error', "La cédula de identidad '$ci' ya pertenece a otro expediente clínico.")
+                ->withInput();
+        }
+
+        // Validar unicidad de username y email en usuarios
+        if ($usuarioId) {
+            $userExistente = DB::table('usuarios')
+                ->where('username', $username)
+                ->where('id', '<>', $usuarioId)
+                ->exists();
+
+            if ($userExistente) {
+                return redirect()->route('dashboard', ['mod' => 'perfil'])
+                    ->with('error', "El nombre de usuario '$username' ya se encuentra en uso.")
+                    ->withInput();
+            }
+
+            $emailExistente = DB::table('usuarios')
+                ->where('email', $email)
+                ->where('id', '<>', $usuarioId)
+                ->exists();
+
+            if ($emailExistente) {
+                return redirect()->route('dashboard', ['mod' => 'perfil'])
+                    ->with('error', "El correo electrónico '$email' ya se encuentra registrado con otro usuario.")
+                    ->withInput();
+            }
+        }
+
+        DB::transaction(function () use ($pacienteId, $usuarioId, $ci, $nombres, $apellidos, $fechaNacimiento, $sexo, $telefono, $email, $direccion, $username, $password) {
+            DB::table('pacientes')
+                ->where('id', $pacienteId)
+                ->update([
+                    'ci'               => $ci,
+                    'nombres'          => $nombres,
+                    'apellidos'        => $apellidos,
+                    'fecha_nacimiento' => $fechaNacimiento,
+                    'sexo'             => $sexo,
+                    'telefono'         => $telefono,
+                    'email'            => $email,
+                    'direccion'        => $direccion,
+                    'updated_at'       => now(),
+                ]);
+
+            if ($usuarioId) {
+                $usuarioUpdate = [
+                    'username'   => $username,
+                    'email'      => $email,
+                    'updated_at' => now(),
+                ];
+
+                if (! empty($password)) {
+                    $usuarioUpdate['password_hash'] = Hash::make($password);
+                }
+
+                DB::table('usuarios')
+                    ->where('id', $usuarioId)
+                    ->update($usuarioUpdate);
+            }
+
+            session([
+                'username'        => $username,
+                'email'           => $email,
+                'nombre_completo' => $nombres . ' ' . $apellidos,
+                'paciente_ci'     => $ci,
+            ]);
+        });
+
+        return redirect()->route('dashboard', ['mod' => 'perfil'])
+            ->with('success', '¡Su perfil y datos personales se han actualizado correctamente!');
     }
 }

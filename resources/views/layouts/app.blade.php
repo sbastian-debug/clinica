@@ -417,9 +417,16 @@
                 <div class="text-white fw-semibold small text-truncate">
                     {{ session('nombre_completo', session('username')) }}
                 </div>
-                <span class="badge {{ $badgeRolColor }} text-uppercase" style="font-size: 0.68rem;">
-                    {{ $rol }}
-                </span>
+                <div class="d-flex align-items-center gap-1 mt-1">
+                    <span class="badge {{ $badgeRolColor }} text-uppercase" style="font-size: 0.68rem;">
+                        {{ $rol }}
+                    </span>
+                    @if($rol === 'Paciente')
+                    <a href="{{ route('dashboard', ['mod' => 'perfil']) }}" class="badge bg-secondary text-white text-decoration-none" title="Editar Mi Perfil" style="font-size: 0.65rem;">
+                        <i class="bi bi-pencil-square"></i> Perfil
+                    </a>
+                    @endif
+                </div>
             </div>
         </div>
 
@@ -481,6 +488,17 @@
                     </span>
                 </a>
             </li>
+
+            <!-- Mi Perfil Propio (Paciente) -->
+            @if($rol === 'Paciente')
+            <li class="nav-item">
+                <a href="{{ route('dashboard', ['mod' => 'perfil']) }}"
+                   class="nav-link {{ ($modulo ?? '') == 'perfil' ? 'active' : '' }}">
+                    <i class="bi bi-person-gear"></i>
+                    <span>Mi Perfil</span>
+                </a>
+            </li>
+            @endif
 
             <!-- Reportes Administrativos (Admin y Recepción) -->
             @if(in_array($rol, ['Administrador', 'Recepcionista']))
@@ -584,6 +602,12 @@
             </div>
 
             <div class="d-flex align-items-center gap-2 gap-sm-3">
+                @if($rol === 'Paciente')
+                <a href="{{ route('dashboard', ['mod' => 'perfil']) }}" class="btn btn-outline-primary btn-sm rounded-pill px-2 px-sm-3 d-flex align-items-center gap-1 shadow-none {{ ($modulo ?? '') == 'perfil' ? 'active' : '' }}">
+                    <i class="bi bi-person-gear"></i>
+                    <span class="fw-semibold d-none d-sm-inline">Mi Perfil</span>
+                </a>
+                @endif
                 @if($rol !== 'Medico')
                 <a href="{{ route('dashboard', ['mod' => 'citas']) }}" class="btn btn-primary btn-sm rounded-pill px-2 px-sm-3 shadow-sm d-flex align-items-center gap-1 gap-sm-2">
                     <i class="bi bi-plus-circle"></i>
