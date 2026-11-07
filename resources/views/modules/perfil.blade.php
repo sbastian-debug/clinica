@@ -5,7 +5,7 @@
             <div class="card-body p-4 text-white">
                 <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
                     <div class="d-flex align-items-center gap-3">
-                        <div class="rounded-circle bg-white text-primary d-flex align-items-center justify-content-center shadow-sm fw-bold"
+                        <div class="rounded-circle bg-white text-primary d-flex align-items-center justify-content-center shadow-sm fw-bold flex-shrink-0"
                              style="width: 72px; height: 72px; font-size: 1.8rem; border: 3px solid rgba(255, 255, 255, 0.4);">
                             {{ strtoupper(substr($perfilPaciente->nombres ?? session('nombre_completo', 'P'), 0, 1)) }}{{ strtoupper(substr($perfilPaciente->apellidos ?? '', 0, 1)) }}
                         </div>
@@ -17,6 +17,16 @@
                                 <span class="badge bg-white text-primary fw-semibold px-2 py-1 rounded-pill small">
                                     <i class="bi bi-check-circle-fill text-success me-1"></i> Paciente Activo
                                 </span>
+                                @if(!empty($perfilPaciente->tipo_sangre))
+                                    <span class="badge bg-danger text-white fw-semibold px-2 py-1 rounded-pill small shadow-sm">
+                                        <i class="bi bi-droplet-fill me-1"></i> Sangre: {{ $perfilPaciente->tipo_sangre }}
+                                    </span>
+                                @endif
+                                @if(!empty($perfilPaciente->alergias))
+                                    <span class="badge bg-warning text-dark fw-semibold px-2 py-1 rounded-pill small shadow-sm">
+                                        <i class="bi bi-shield-exclamation me-1"></i> Con Alergias
+                                    </span>
+                                @endif
                             </div>
                             <div class="text-white-50 small d-flex flex-wrap align-items-center gap-3">
                                 <span><i class="bi bi-upc-scan me-1"></i> Código: <strong class="text-white">{{ $perfilPaciente->codigo ?? session('paciente_codigo', 'PAC-XXXX') }}</strong></span>
@@ -44,8 +54,8 @@
                         <i class="bi bi-person-gear fs-4"></i>
                     </div>
                     <div>
-                        <h5 class="fw-bold mb-0 text-dark">Editar Mi Información Personal</h5>
-                        <span class="text-muted small">Actualice sus datos personales, contacto y credenciales de acceso de forma segura.</span>
+                        <h5 class="fw-bold mb-0 text-dark">Editar Mi Perfil e Información Médica</h5>
+                        <span class="text-muted small">Actualice sus datos personales, expediente clínico, antecedentes de salud y credenciales de acceso.</span>
                     </div>
                 </div>
             </div>
@@ -221,6 +231,99 @@
                                 <span class="form-text text-muted small" style="font-size: 0.75rem;">
                                     Ingrese una nueva clave únicamente si desea modificar su contraseña de acceso (mínimo 6 caracteres).
                                 </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sección 3: Información Médica y Antecedentes Clínicos -->
+                    <div class="col-12">
+                        <div class="p-3 p-sm-4 rounded-4 border bg-light bg-opacity-50 mt-2">
+                            <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill p-2">
+                                        <i class="bi bi-heart-pulse fs-6"></i>
+                                    </span>
+                                    <div>
+                                        <h6 class="fw-bold mb-0 text-dark">3. Información Médica</h6>
+                                        <span class="text-muted small">Datos clínicos vitales para su atención médica y expedientes de consulta.</span>
+                                    </div>
+                                </div>
+                                <span class="badge bg-danger bg-opacity-10 text-danger small px-2 py-1">
+                                    <i class="bi bi-shield-plus me-1"></i> Expediente de Salud
+                                </span>
+                            </div>
+
+                            <div class="row g-3">
+                                <!-- Tipo de Sangre -->
+                                <div class="col-12 col-md-4">
+                                    <label class="form-label small fw-semibold text-secondary">
+                                        <i class="bi bi-droplet-fill text-danger me-1"></i> Tipo de Sangre
+                                    </label>
+                                    @php
+                                        $tiposSangre = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'];
+                                        $sangreActual = old('tipo_sangre', $perfilPaciente->tipo_sangre ?? '');
+                                    @endphp
+                                    <select name="tipo_sangre" class="form-select rounded-3">
+                                        <option value="">-- No especificado --</option>
+                                        @foreach($tiposSangre as $ts)
+                                            <option value="{{ $ts }}" {{ $sangreActual === $ts ? 'selected' : '' }}>
+                                                {{ $ts }} (Factor Rh {{ str_contains($ts, '+') ? 'Positivo' : 'Negativo' }})
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <span class="form-text text-muted small" style="font-size: 0.72rem;">
+                                        Grupo sanguíneo y factor Rh.
+                                    </span>
+                                </div>
+
+                                <!-- Alergias -->
+                                <div class="col-12 col-md-8">
+                                    <label class="form-label small fw-semibold text-secondary">
+                                        <i class="bi bi-exclamation-diamond-fill text-warning me-1"></i> Alergias
+                                    </label>
+                                    <input type="text" name="alergias" class="form-control rounded-3"
+                                           placeholder="Ej. Penicilina, sulfamidas, mariscos, polen, etc. (o 'Ninguna')"
+                                           value="{{ old('alergias', $perfilPaciente->alergias ?? '') }}">
+                                    <span class="form-text text-muted small" style="font-size: 0.72rem;">
+                                        Alergias a medicamentos, alimentos o sustancias ambientales.
+                                    </span>
+                                </div>
+
+                                <!-- Enfermedades Crónicas -->
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label small fw-semibold text-secondary">
+                                        <i class="bi bi-activity text-primary me-1"></i> Enfermedades Crónicas
+                                    </label>
+                                    <textarea name="enfermedades_cronicas" rows="3" class="form-control rounded-3"
+                                              placeholder="Ej. Hipertensión arterial, Diabetes mellitus tipo 2, Asma bronquial, etc.">{{ old('enfermedades_cronicas', $perfilPaciente->enfermedades_cronicas ?? '') }}</textarea>
+                                    <span class="form-text text-muted small" style="font-size: 0.72rem;">
+                                        Condiciones médicas preexistentes o diagnósticos en tratamiento.
+                                    </span>
+                                </div>
+
+                                <!-- Medicamentos Habituales / Actuales -->
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label small fw-semibold text-secondary">
+                                        <i class="bi bi-capsule-pill text-info me-1"></i> Medicamentos
+                                    </label>
+                                    <textarea name="medicamentos" rows="3" class="form-control rounded-3"
+                                              placeholder="Ej. Enalapril 10mg diario, Metformina 850mg en almuerzo, etc.">{{ old('medicamentos', $perfilPaciente->medicamentos ?? '') }}</textarea>
+                                    <span class="form-text text-muted small" style="font-size: 0.72rem;">
+                                        Medicamentos o fármacos de consumo habitual y dosis.
+                                    </span>
+                                </div>
+
+                                <!-- Antecedentes Relevantes -->
+                                <div class="col-12">
+                                    <label class="form-label small fw-semibold text-secondary">
+                                        <i class="bi bi-journal-medical text-success me-1"></i> Antecedentes Relevantes
+                                    </label>
+                                    <textarea name="antecedentes_relevantes" rows="3" class="form-control rounded-3"
+                                              placeholder="Ej. Cirugías anteriores (Apendicectomía 2019), transfusiones previas, antecedentes patológicos familiares (diabetes, cardiopatías)...">{{ old('antecedentes_relevantes', $perfilPaciente->antecedentes_relevantes ?? '') }}</textarea>
+                                    <span class="form-text text-muted small" style="font-size: 0.72rem;">
+                                        Cirugías, hospitalizaciones previas o historial familiar de importancia clínica.
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>

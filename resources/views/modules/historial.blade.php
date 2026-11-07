@@ -97,6 +97,42 @@
                 </div>
             </div>
 
+            <!-- Ficha Médica de Base del Paciente -->
+            @if(!empty($paciente->tipo_sangre) || !empty($paciente->alergias) || !empty($paciente->enfermedades_cronicas) || !empty($paciente->medicamentos) || !empty($paciente->antecedentes_relevantes))
+            <div class="p-3 rounded-3 bg-light border border-info border-opacity-25 mb-4">
+                <div class="d-flex align-items-center gap-2 mb-2 pb-1 border-bottom">
+                    <i class="bi bi-heart-pulse-fill text-danger"></i>
+                    <strong class="text-dark small text-uppercase">Información Médica del Paciente</strong>
+                </div>
+                <div class="row g-2 small">
+                    <div class="col-6 col-md-3">
+                        <span class="text-muted d-block">Tipo de Sangre:</span>
+                        <span class="badge bg-danger">{{ $paciente->tipo_sangre ?? 'No especificado' }}</span>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <span class="text-muted d-block">Alergias:</span>
+                        <strong class="{{ !empty($paciente->alergias) ? 'text-warning text-dark' : 'text-secondary' }}">{{ $paciente->alergias ?? 'Ninguna conocida' }}</strong>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <span class="text-muted d-block">Enfermedades Crónicas:</span>
+                        <span class="text-dark">{{ $paciente->enfermedades_cronicas ?? 'Sin antecedentes crónicos registrados' }}</span>
+                    </div>
+                    @if(!empty($paciente->medicamentos))
+                    <div class="col-12 col-md-6 mt-1">
+                        <span class="text-muted d-block">Medicamentos Actuales:</span>
+                        <span class="text-dark">{{ $paciente->medicamentos }}</span>
+                    </div>
+                    @endif
+                    @if(!empty($paciente->antecedentes_relevantes))
+                    <div class="col-12 col-md-6 mt-1">
+                        <span class="text-muted d-block">Antecedentes Relevantes:</span>
+                        <span class="text-dark">{{ $paciente->antecedentes_relevantes }}</span>
+                    </div>
+                    @endif
+                </div>
+            </div>
+            @endif
+
             <!-- Resumen Estadístico de Citas -->
             <div class="row g-2 g-sm-3">
                 <div class="col-6 col-md-3">

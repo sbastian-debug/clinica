@@ -113,6 +113,22 @@
             </div>
         @endif
 
+        @if(session('password_reset_success'))
+            @php $res = session('password_reset_success'); @endphp
+            <div class="alert alert-success border-0 rounded-4 p-3 mb-3 shadow-sm d-flex align-items-start gap-2" style="background-color: #ecfdf5;">
+                <i class="bi bi-envelope-check-fill text-success fs-4 mt-n1 flex-shrink-0"></i>
+                <div>
+                    <div class="fw-bold text-success mb-1">¡Correo de Recuperación Enviado!</div>
+                    <p class="small text-secondary mb-1" style="font-size: 0.82rem;">
+                        Hemos enviado una contraseña temporal a su correo <strong>{{ $res['email'] }}</strong>.
+                    </p>
+                    <div class="text-muted small" style="font-size: 0.74rem;">
+                        <i class="bi bi-info-circle me-1"></i> Revise su bandeja de entrada (o carpeta de correo no deseado/spam) para iniciar sesión. Una vez dentro, podrá actualizarla en <strong>Mi Perfil</strong>.
+                    </div>
+                </div>
+            </div>
+        @endif
+
         <form action="{{ route('login.post') }}" method="POST">
             @csrf
             <div class="mb-3">
@@ -129,7 +145,12 @@
             </div>
 
             <div class="mb-4">
-                <label class="form-label small fw-semibold text-secondary">Contraseña</label>
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <label class="form-label small fw-semibold text-secondary mb-0">Contraseña</label>
+                    <a href="{{ route('password.request') }}" class="text-primary small text-decoration-none fw-semibold" style="font-size: 0.8rem;">
+                        ¿Olvidé mi contraseña?
+                    </a>
+                </div>
                 <div class="input-group">
                     <span class="input-group-text bg-light border-end-0 text-muted"
                         style="border-radius: 12px 0 0 12px;">

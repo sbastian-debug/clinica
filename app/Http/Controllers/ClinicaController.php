@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class ClinicaController extends Controller
 {
@@ -690,6 +691,91 @@ class ClinicaController extends Controller
         });
 
         return redirect()->route('login')->with('info', "¡Cuenta del paciente $codigo creada con éxito! Ingrese con usuario '$username' y su contraseña.");
+    }
+
+    /**
+     * Muestra la vista para solicitar recuperación de contraseña.
+     */
+    public function showRecuperarContrasena()
+    {
+        if (session()->has('usuario_id')) {
+            return redirect()->route('dashboard');
+        }
+
+        return view('recuperar-contrasena');
+    }
+
+    /**
+     * Procesa la solicitud de recuperación enviando una contraseña temporal por correo al paciente.
+     */
+    public function enviarContrasenaTemporal(Request $request)
+    {
+        $request->validate([
+            'credencial' => 'required|string',
+        ]);
+
+        $credencial = trim($request->input('credencial'));
+
+        // Buscar usuario por correo electrónico o nombre de usuario
+        $user = DB::table('usuarios')
+            ->join('roles', 'usuarios.rol_id', '=', 'roles.id')
+            ->where(function ($q) use ($credencial) {
+                $q->where('usuarios.email', $credencial)
+                    ->orWhere('usuarios.username', $credencial);
+            })
+            ->where('usuarios.estado', true)
+            ->select('usuarios.*', 'roles.nombre as rol')
+            ->first();
+
+        if (! $user) {
+            return back()->with('error', "No se encontró ninguna cuenta activa asociada a '$credencial'. Verifique su correo o usuario.")->withInput();
+        }
+
+        // Obtener datos del paciente
+        $paciente = DB::table('pacientes')->where('usuario_id', $user->id)->first();
+        if (! $paciente) {
+            $paciente = DB::table('pacientes')->where('email', $user->email)->first();
+        }
+        $nombrePaciente = $paciente ? ($paciente->nombres . ' ' . $paciente->apellidos) : $user->username;
+
+        // Generar una contraseña temporal segura y legible
+        $tempPassword = 'Salud-' . random_int(100000, 999999);
+
+        // Actualizar contraseña en la base de datos
+        DB::table('usuarios')
+            ->where('id', $user->id)
+            ->update([
+                'password_hash' => Hash::make($tempPassword),
+                'updated_at'    => now(),
+            ]);
+
+        // Enviar por correo electrónico al paciente
+        try {
+            Mail::raw(
+                "Estimado(a) {$nombrePaciente},\n\n" .
+                "Hemos recibido una solicitud para recuperar el acceso a su cuenta en Clínica Vida Salud.\n\n" .
+                "Su contraseña temporal asignada es:\n" .
+                "👉 {$tempPassword}\n\n" .
+                "Pasos para recuperar el control de su cuenta:\n" .
+                "1. Ingrese al portal con su usuario ({$user->username}) o correo ({$user->email}) y esta contraseña temporal.\n" .
+                "2. Una vez que ingrese al sistema, diríjase a la sección 'Mi Perfil' para definir su nueva contraseña personal definitiva.\n\n" .
+                "Si usted no realizó esta solicitud, puede comunicarse de inmediato con recepción de Clínica Vida Salud.\n\n" .
+                "Atentamente,\n" .
+                "Clínica Vida Salud - Portal del Paciente",
+                function ($message) use ($user) {
+                    $message->to($user->email)
+                        ->subject('Contraseña Temporal de Acceso - Clínica Vida Salud');
+                }
+            );
+        } catch (\Throwable $e) {
+            Log::warning('No se pudo enviar el correo de recuperación: ' . $e->getMessage());
+        }
+
+        return redirect()->route('login')->with('password_reset_success', [
+            'email'    => $user->email,
+            'username' => $user->username,
+            'nombre'   => $nombrePaciente,
+        ]);
     }
 
     /**
@@ -1395,16 +1481,21 @@ class ClinicaController extends Controller
         }
 
         $request->validate([
-            'ci'               => 'required|string|max:20',
-            'nombres'          => 'required|string|max:100',
-            'apellidos'        => 'required|string|max:100',
-            'fecha_nacimiento' => 'required|date',
-            'sexo'             => 'required|in:M,F',
-            'telefono'         => 'required|string|max:20',
-            'email'            => 'required|email|max:100',
-            'direccion'        => 'nullable|string|max:255',
-            'username'         => 'required|string|max:50',
-            'password'         => 'nullable|string|min:6',
+            'ci'                      => 'required|string|max:20',
+            'nombres'                 => 'required|string|max:100',
+            'apellidos'               => 'required|string|max:100',
+            'fecha_nacimiento'        => 'required|date',
+            'sexo'                    => 'required|in:M,F',
+            'telefono'                => 'required|string|max:20',
+            'email'                   => 'required|email|max:100',
+            'direccion'               => 'nullable|string|max:255',
+            'username'                => 'required|string|max:50',
+            'password'                => 'nullable|string|min:6',
+            'tipo_sangre'             => 'nullable|string|max:10',
+            'alergias'                => 'nullable|string|max:1000',
+            'enfermedades_cronicas'   => 'nullable|string|max:1000',
+            'medicamentos'            => 'nullable|string|max:1000',
+            'antecedentes_relevantes' => 'nullable|string|max:2000',
         ]);
 
         $ci = trim($request->input('ci'));
@@ -1417,6 +1508,12 @@ class ClinicaController extends Controller
         $fechaNacimiento = $request->input('fecha_nacimiento');
         $sexo = $request->input('sexo');
         $password = $request->input('password');
+
+        $tipoSangre = $request->filled('tipo_sangre') ? trim($request->input('tipo_sangre')) : null;
+        $alergias = $request->filled('alergias') ? trim($request->input('alergias')) : null;
+        $enfermedadesCronicas = $request->filled('enfermedades_cronicas') ? trim($request->input('enfermedades_cronicas')) : null;
+        $medicamentos = $request->filled('medicamentos') ? trim($request->input('medicamentos')) : null;
+        $antecedentesRelevantes = $request->filled('antecedentes_relevantes') ? trim($request->input('antecedentes_relevantes')) : null;
 
         // Validar unicidad de CI en otros pacientes
         $ciExistente = DB::table('pacientes')
@@ -1455,19 +1552,42 @@ class ClinicaController extends Controller
             }
         }
 
-        DB::transaction(function () use ($pacienteId, $usuarioId, $ci, $nombres, $apellidos, $fechaNacimiento, $sexo, $telefono, $email, $direccion, $username, $password) {
+        DB::transaction(function () use (
+            $pacienteId,
+            $usuarioId,
+            $ci,
+            $nombres,
+            $apellidos,
+            $fechaNacimiento,
+            $sexo,
+            $telefono,
+            $email,
+            $direccion,
+            $username,
+            $password,
+            $tipoSangre,
+            $alergias,
+            $enfermedadesCronicas,
+            $medicamentos,
+            $antecedentesRelevantes
+        ) {
             DB::table('pacientes')
                 ->where('id', $pacienteId)
                 ->update([
-                    'ci'               => $ci,
-                    'nombres'          => $nombres,
-                    'apellidos'        => $apellidos,
-                    'fecha_nacimiento' => $fechaNacimiento,
-                    'sexo'             => $sexo,
-                    'telefono'         => $telefono,
-                    'email'            => $email,
-                    'direccion'        => $direccion,
-                    'updated_at'       => now(),
+                    'ci'                      => $ci,
+                    'nombres'                 => $nombres,
+                    'apellidos'               => $apellidos,
+                    'fecha_nacimiento'        => $fechaNacimiento,
+                    'sexo'                    => $sexo,
+                    'telefono'                => $telefono,
+                    'email'                   => $email,
+                    'direccion'               => $direccion,
+                    'tipo_sangre'             => $tipoSangre,
+                    'alergias'                => $alergias,
+                    'enfermedades_cronicas'   => $enfermedadesCronicas,
+                    'medicamentos'            => $medicamentos,
+                    'antecedentes_relevantes' => $antecedentesRelevantes,
+                    'updated_at'              => now(),
                 ]);
 
             if ($usuarioId) {

@@ -11,6 +11,10 @@ Route::get('/logout', [ClinicaController::class, 'logout'])->name('logout');
 Route::get('/registro', [ClinicaController::class, 'showRegister'])->name('register');
 Route::post('/registro', [ClinicaController::class, 'registerPaciente'])->name('register.post');
 
+// Recuperación de Contraseña con Clave Temporal
+Route::get('/recuperar-contrasena', [ClinicaController::class, 'showRecuperarContrasena'])->name('password.request');
+Route::post('/recuperar-contrasena', [ClinicaController::class, 'enviarContrasenaTemporal'])->name('password.email');
+
 // Panel Principal
 Route::get('/dashboard', [ClinicaController::class, 'dashboard'])->name('dashboard');
 Route::get('/sincronizar-datos', [ClinicaController::class, 'sincronizarDatosManualmente'])->name('sincronizar');
