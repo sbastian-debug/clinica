@@ -1,7 +1,7 @@
 <div class="row g-4">
     <!-- Formulario para Registrar Nueva Especialidad -->
     <div class="col-12 col-lg-5">
-        <div class="custom-card p-4">
+        <div class="custom-card p-3 p-sm-4">
             <div class="d-flex align-items-center gap-2 mb-3 border-bottom pb-3">
                 <div class="p-2 bg-success bg-opacity-10 text-success rounded-3">
                     <i class="bi bi-diagram-3-fill fs-5"></i>
@@ -53,12 +53,12 @@
     <!-- Directorio de Especialidades -->
     <div class="col-12 col-lg-7">
         <div class="custom-card">
-            <div class="p-4 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="p-3 p-sm-4 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-3">
                 <div>
                     <h6 class="fw-bold mb-1 text-dark">Especialidades Médicas Habilitadas</h6>
                     <span class="text-muted small">Catálogo de áreas asistenciales de la clínica</span>
                 </div>
-                <div class="search-box" style="width: 240px;">
+                <div class="search-box" style="width: 240px; max-width: 100%;">
                     <i class="bi bi-search"></i>
                     <input type="text" id="buscarEspecialidades" class="form-control form-control-sm" placeholder="Buscar especialidad...">
                 </div>

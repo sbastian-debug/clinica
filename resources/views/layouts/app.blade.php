@@ -255,6 +255,108 @@
             border: 1px solid #cbd5e1;
         }
 
+        /* Responsive Breakpoints & Mobile Optimization */
+        @media (max-width: 991.98px) {
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: -310px;
+                width: 290px;
+                height: 100vh;
+                max-height: 100vh;
+                overflow-y: auto;
+                z-index: 1060;
+                transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: none;
+            }
+
+            .sidebar.show {
+                left: 0;
+                box-shadow: 12px 0 35px rgba(0, 0, 0, 0.45);
+            }
+
+            .sidebar-backdrop {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background-color: rgba(15, 23, 42, 0.65);
+                backdrop-filter: blur(2px);
+                z-index: 1055;
+            }
+
+            .sidebar-backdrop.show {
+                display: block;
+            }
+
+            .main-wrapper {
+                width: 100%;
+                min-width: 0;
+            }
+
+            .top-navbar {
+                padding: 0.75rem 1rem;
+            }
+
+            .content-body {
+                padding: 1.25rem 1rem;
+            }
+
+            .custom-card {
+                border-radius: 14px;
+            }
+
+            .kpi-card {
+                padding: 1rem;
+                border-radius: 14px;
+                gap: 0.75rem;
+            }
+
+            .kpi-icon {
+                width: 44px;
+                height: 44px;
+                font-size: 1.3rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .top-navbar {
+                padding: 0.65rem 0.85rem;
+            }
+
+            .content-body {
+                padding: 1rem 0.75rem;
+            }
+
+            .kpi-card {
+                padding: 0.85rem;
+                gap: 0.5rem;
+            }
+
+            .kpi-card h4 {
+                font-size: 1.25rem;
+            }
+
+            .kpi-icon {
+                width: 38px;
+                height: 38px;
+                font-size: 1.15rem;
+            }
+
+            .table th, .table td {
+                font-size: 0.82rem;
+                padding: 0.65rem 0.65rem;
+            }
+
+            .search-box {
+                width: 100% !important;
+                min-width: 100%;
+            }
+        }
+
+        .table-responsive {
+            -webkit-overflow-scrolling: touch;
+        }
+
         @media print {
             .sidebar, .top-navbar, .d-print-none, .btn, .modal {
                 display: none !important;
@@ -286,16 +388,24 @@
 @endphp
 
 <div class="d-flex">
+    <!-- Backdrop para Móviles -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
     <!-- Sidebar -->
-    <aside class="sidebar d-print-none">
-        <div class="sidebar-brand">
-            <div class="brand-icon">
-                <i class="bi bi-heart-pulse-fill"></i>
+    <aside class="sidebar d-print-none" id="mainSidebar">
+        <div class="sidebar-brand d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-3">
+                <div class="brand-icon">
+                    <i class="bi bi-heart-pulse-fill"></i>
+                </div>
+                <div>
+                    <h6 class="text-white fw-bold mb-0">Vida Salud</h6>
+                    <span class="text-info small" style="font-size: 0.75rem;">Sistema Clínico</span>
+                </div>
             </div>
-            <div>
-                <h6 class="text-white fw-bold mb-0">Vida Salud</h6>
-                <span class="text-info small" style="font-size: 0.75rem;">Sistema Clínico Integral</span>
-            </div>
+            <button type="button" class="btn btn-sm text-white-50 d-lg-none p-1 border-0" id="btnCloseSidebar" aria-label="Cerrar">
+                <i class="bi bi-x-lg fs-5"></i>
+            </button>
         </div>
 
         <!-- Usuario Conectado -->
@@ -456,25 +566,35 @@
     <div class="main-wrapper">
         <!-- Top Navbar -->
         <header class="top-navbar d-print-none">
-            <div class="d-flex align-items-center gap-3">
-                <h5 class="fw-bold text-dark mb-0">@yield('page_title', 'Panel General')</h5>
-                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill small">
-                    <i class="bi bi-calendar3 me-1 text-primary"></i>
-                    {{ date('d/m/Y') }}
-                </span>
+            <div class="d-flex align-items-center gap-2">
+                <!-- Botón Toggle Menú Móvil -->
+                <button type="button" class="btn btn-light border d-lg-none p-2 rounded-3 text-secondary shadow-none" id="btnToggleSidebar" aria-label="Abrir Menú">
+                    <i class="bi bi-list fs-4 lh-1"></i>
+                </button>
+
+                <div>
+                    <h5 class="fw-bold text-dark mb-0 fs-6 fs-sm-5 text-truncate" style="max-width: 220px;">
+                        @yield('page_title', 'Panel General')
+                    </h5>
+                    <span class="badge bg-light text-secondary border px-2 py-1 rounded-pill small d-none d-md-inline-block mt-1">
+                        <i class="bi bi-calendar3 me-1 text-primary"></i>
+                        {{ date('d/m/Y') }}
+                    </span>
+                </div>
             </div>
-            <div class="d-flex align-items-center gap-3">
+
+            <div class="d-flex align-items-center gap-2 gap-sm-3">
                 @if($rol !== 'Medico')
-                <a href="{{ route('dashboard', ['mod' => 'citas']) }}" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm d-flex align-items-center gap-2">
+                <a href="{{ route('dashboard', ['mod' => 'citas']) }}" class="btn btn-primary btn-sm rounded-pill px-2 px-sm-3 shadow-sm d-flex align-items-center gap-1 gap-sm-2">
                     <i class="bi bi-plus-circle"></i>
-                    <span class="fw-semibold">
+                    <span class="fw-semibold d-none d-sm-inline">
                         {{ $rol === 'Paciente' ? 'Solicitar Cita' : 'Nueva Cita' }}
                     </span>
                 </a>
-                <div class="vr"></div>
+                <div class="vr d-none d-md-block"></div>
                 @endif
                 <div class="text-end d-none d-md-block">
-                    <div class="fw-semibold small">{{ session('email') }}</div>
+                    <div class="fw-semibold small text-truncate" style="max-width: 170px;">{{ session('email') }}</div>
                     <div class="text-muted" style="font-size: 0.75rem;">Rol: <strong class="text-primary">{{ $rol }}</strong></div>
                 </div>
             </div>
@@ -484,7 +604,7 @@
         <main class="content-body">
             <!-- Alertas Generales -->
             @if(session('success'))
-                <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm rounded-3 d-flex align-items-center gap-2 mb-4 d-print-none" role="alert">
+                <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm rounded-3 d-flex align-items-center gap-2 mb-3 mb-sm-4 d-print-none" role="alert">
                     <i class="bi bi-check-circle-fill fs-5"></i>
                     <div>{{ session('success') }}</div>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -492,7 +612,7 @@
             @endif
 
             @if(session('error'))
-                <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm rounded-3 d-flex align-items-center gap-2 mb-4 d-print-none" role="alert">
+                <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm rounded-3 d-flex align-items-center gap-2 mb-3 mb-sm-4 d-print-none" role="alert">
                     <i class="bi bi-exclamation-triangle-fill fs-5"></i>
                     <div>{{ session('error') }}</div>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -500,56 +620,56 @@
             @endif
 
             @if(session('info'))
-                <div class="alert alert-info alert-dismissible fade show border-0 shadow-sm rounded-3 d-flex align-items-center gap-2 mb-4 d-print-none" role="alert">
+                <div class="alert alert-info alert-dismissible fade show border-0 shadow-sm rounded-3 d-flex align-items-center gap-2 mb-3 mb-sm-4 d-print-none" role="alert">
                     <i class="bi bi-info-circle-fill fs-5"></i>
                     <div>{{ session('info') }}</div>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             @endif
 
-            <!-- KPIs Globales / Personalizados por Rol -->
+            <!-- KPIs Globales / Personalizados por Rol (2 columnas en móviles, 4 en pantallas grandes) -->
             @if(isset($kpis) && count($kpis) > 0 && ($modulo ?? 'citas') === 'citas')
-            <div class="row g-3 mb-4 d-print-none">
-                <div class="col-12 col-sm-6 col-xl-3">
+            <div class="row g-2 g-sm-3 mb-3 mb-sm-4 d-print-none">
+                <div class="col-6 col-md-6 col-xl-3">
                     <div class="kpi-card">
                         <div class="kpi-icon bg-primary bg-opacity-10 text-primary">
                             <i class="bi bi-folder-check"></i>
                         </div>
                         <div>
-                            <div class="text-muted small fw-medium">{{ $kpis['label_1'] ?? 'Total' }}</div>
+                            <div class="text-muted small fw-medium" style="font-size: 0.75rem;">{{ $kpis['label_1'] ?? 'Total' }}</div>
                             <h4 class="fw-bold mb-0 text-dark">{{ $kpis['total_pacientes'] ?? 0 }}</h4>
                         </div>
                     </div>
                 </div>
-                <div class="col-12 col-sm-6 col-xl-3">
+                <div class="col-6 col-md-6 col-xl-3">
                     <div class="kpi-card">
                         <div class="kpi-icon bg-info bg-opacity-10 text-info">
                             <i class="bi bi-person-check-fill"></i>
                         </div>
                         <div>
-                            <div class="text-muted small fw-medium">{{ $kpis['label_2'] ?? 'Secundario' }}</div>
+                            <div class="text-muted small fw-medium" style="font-size: 0.75rem;">{{ $kpis['label_2'] ?? 'Secundario' }}</div>
                             <h4 class="fw-bold mb-0 text-dark">{{ $kpis['total_medicos'] ?? $kpis['citas_pendientes'] ?? 0 }}</h4>
                         </div>
                     </div>
                 </div>
-                <div class="col-12 col-sm-6 col-xl-3">
+                <div class="col-6 col-md-6 col-xl-3">
                     <div class="kpi-card">
                         <div class="kpi-icon bg-warning bg-opacity-10 text-warning">
                             <i class="bi bi-calendar2-day-fill"></i>
                         </div>
                         <div>
-                            <div class="text-muted small fw-medium">{{ $kpis['label_3'] ?? 'Hoy' }}</div>
+                            <div class="text-muted small fw-medium" style="font-size: 0.75rem;">{{ $kpis['label_3'] ?? 'Hoy' }}</div>
                             <h4 class="fw-bold mb-0 text-dark">{{ $kpis['citas_hoy'] ?? $kpis['citas_atendidas'] ?? 0 }}</h4>
                         </div>
                     </div>
                 </div>
-                <div class="col-12 col-sm-6 col-xl-3">
+                <div class="col-6 col-md-6 col-xl-3">
                     <div class="kpi-card">
                         <div class="kpi-icon bg-success bg-opacity-10 text-success">
                             <i class="bi bi-check2-circle"></i>
                         </div>
                         <div>
-                            <div class="text-muted small fw-medium">{{ $kpis['label_4'] ?? 'Completadas' }}</div>
+                            <div class="text-muted small fw-medium" style="font-size: 0.75rem;">{{ $kpis['label_4'] ?? 'Completadas' }}</div>
                             <h4 class="fw-bold mb-0 text-dark">{{ $kpis['citas_atendidas'] ?? $kpis['citas_hoy'] ?? 0 }}</h4>
                         </div>
                     </div>
@@ -566,8 +686,40 @@
 <!-- Bootstrap 5 JS Bundle -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- Script para Filtrado Rápido de Tablas en Vivo -->
+<!-- Script para Filtrado Rápido de Tablas en Vivo y Control Responsive Móvil -->
 <script>
+    // Control de Sidebar Responsive para Dispositivos Móviles
+    const sidebar = document.getElementById('mainSidebar');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    const btnToggle = document.getElementById('btnToggleSidebar');
+    const btnClose = document.getElementById('btnCloseSidebar');
+
+    function openSidebar() {
+        if (sidebar) sidebar.classList.add('show');
+        if (backdrop) backdrop.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeSidebar() {
+        if (sidebar) sidebar.classList.remove('show');
+        if (backdrop) backdrop.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+
+    if (btnToggle) btnToggle.addEventListener('click', openSidebar);
+    if (btnClose) btnClose.addEventListener('click', closeSidebar);
+    if (backdrop) backdrop.addEventListener('click', closeSidebar);
+
+    // Cerrar sidebar al hacer clic en un enlace de navegación en móvil
+    document.querySelectorAll('#mainSidebar .nav-link').forEach(link => {
+        link.addEventListener('click', function() {
+            if (window.innerWidth < 992) {
+                closeSidebar();
+            }
+        });
+    });
+
+    // Filtro de tablas en vivo
     function setupTableFilter(inputId, tableId) {
         const input = document.getElementById(inputId);
         const table = document.getElementById(tableId);

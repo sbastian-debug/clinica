@@ -72,6 +72,22 @@
             box-shadow: 0 8px 20px rgba(2, 132, 199, 0.35);
             color: white;
         }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 1.25rem 0.85rem;
+            }
+            .login-card {
+                padding: 1.75rem 1.25rem;
+                border-radius: 20px;
+            }
+            .brand-badge {
+                width: 50px;
+                height: 50px;
+                font-size: 1.5rem;
+                margin-bottom: 1rem;
+            }
+        }
     </style>
 </head>
 <body>

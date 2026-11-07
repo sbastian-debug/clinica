@@ -23,16 +23,16 @@
 @section('content')
     <!-- Banner Personalizado para Paciente -->
     @if($rol === 'Paciente')
-        <div class="card border-0 bg-primary bg-opacity-10 rounded-4 p-4 mb-4 shadow-sm d-print-none">
+        <div class="card border-0 bg-primary bg-opacity-10 rounded-4 p-3 p-sm-4 mb-3 mb-sm-4 shadow-sm d-print-none">
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="p-3 bg-white text-primary rounded-circle shadow-sm">
-                        <i class="bi bi-person-heart fs-3"></i>
+                    <div class="p-2 p-sm-3 bg-white text-primary rounded-circle shadow-sm">
+                        <i class="bi bi-person-heart fs-4 fs-sm-3"></i>
                     </div>
                     <div>
-                        <h5 class="fw-bold mb-1 text-dark">Expediente Clínico: {{ session('nombre_completo', session('username')) }}</h5>
+                        <h5 class="fw-bold mb-1 text-dark fs-6 fs-sm-5">Expediente Clínico: {{ session('nombre_completo', session('username')) }}</h5>
                         <div class="text-secondary small">
-                            <span class="me-2"><strong class="text-dark">Código de Paciente:</strong> {{ session('paciente_codigo', 'PAC-0001') }}</span>
+                            <span class="me-2"><strong class="text-dark">Código:</strong> {{ session('paciente_codigo', 'PAC-0001') }}</span>
                             @if(session('paciente_ci'))
                                 <span>| <strong class="text-dark">CI:</strong> {{ session('paciente_ci') }}</span>
                             @endif
@@ -40,7 +40,7 @@
                     </div>
                 </div>
                 <span class="badge bg-primary px-3 py-2 rounded-pill fw-semibold">
-                    <i class="bi bi-shield-check me-1"></i> Sesión de Paciente Verificada
+                    <i class="bi bi-shield-check me-1"></i> Sesión Verificada
                 </span>
             </div>
         </div>
@@ -48,21 +48,21 @@
 
     <!-- Banner Personalizado para Médico -->
     @if($rol === 'Medico')
-        <div class="card border-0 bg-success bg-opacity-10 rounded-4 p-4 mb-4 shadow-sm d-print-none">
+        <div class="card border-0 bg-success bg-opacity-10 rounded-4 p-3 p-sm-4 mb-3 mb-sm-4 shadow-sm d-print-none">
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="p-3 bg-white text-success rounded-circle shadow-sm">
-                        <i class="bi bi-stethoscope fs-3"></i>
+                    <div class="p-2 p-sm-3 bg-white text-success rounded-circle shadow-sm">
+                        <i class="bi bi-stethoscope fs-4 fs-sm-3"></i>
                     </div>
                     <div>
-                        <h5 class="fw-bold mb-1 text-dark">Consultorio del {{ session('nombre_completo', session('username')) }}</h5>
+                        <h5 class="fw-bold mb-1 text-dark fs-6 fs-sm-5">Consultorio del {{ session('nombre_completo', session('username')) }}</h5>
                         <div class="text-secondary small">
-                            <span><strong class="text-dark">Código Profesional:</strong> {{ session('medico_codigo', 'MED-XXXX') }}</span>
+                            <span><strong class="text-dark">Código:</strong> {{ session('medico_codigo', 'MED-XXXX') }}</span>
                         </div>
                     </div>
                 </div>
                 <span class="badge bg-success px-3 py-2 rounded-pill fw-semibold">
-                    <i class="bi bi-patch-check me-1"></i> Sesión Médica Activa
+                    <i class="bi bi-patch-check me-1"></i> Sesión Activa
                 </span>
             </div>
         </div>

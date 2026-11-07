@@ -10,7 +10,7 @@
 <div class="row g-4">
     <!-- Barra Superior de Filtros de Agenda -->
     <div class="col-12">
-        <div class="custom-card p-4">
+        <div class="custom-card p-3 p-sm-4">
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3 border-bottom pb-3">
                 <div class="d-flex align-items-center gap-2">
                     <div class="p-2 bg-info bg-opacity-10 text-info rounded-3">
@@ -80,8 +80,8 @@
     @endphp
 
     <div class="col-12">
-        <div class="row g-3">
-            <div class="col-md-4">
+        <div class="row g-2 g-sm-3">
+            <div class="col-6 col-md-4">
                 <div class="kpi-card">
                     <div class="kpi-icon bg-primary bg-opacity-10 text-primary">
                         <i class="bi bi-calendar-check-fill"></i>
@@ -92,18 +92,18 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-6 col-md-4">
                 <div class="kpi-card">
                     <div class="kpi-icon bg-success bg-opacity-10 text-success">
                         <i class="bi bi-unlock-fill"></i>
                     </div>
                     <div>
-                        <div class="text-muted small fw-medium">Turnos Disponibles</div>
+                        <div class="text-muted small fw-medium">Disponibles</div>
                         <h4 class="fw-bold mb-0 text-dark">{{ $disponibles }} Libres</h4>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
                 <div class="kpi-card">
                     <div class="kpi-icon bg-warning bg-opacity-10 text-warning">
                         <i class="bi bi-pie-chart-fill"></i>
@@ -119,7 +119,7 @@
 
     <!-- Cuadrícula / Cronograma de Turnos Diarios -->
     <div class="col-12">
-        <div class="custom-card p-4">
+        <div class="custom-card p-3 p-sm-4">
             <h6 class="fw-bold mb-3 text-dark d-flex align-items-center gap-2">
                 <i class="bi bi-clock-history text-primary"></i>
                 Cronograma de Turnos para el {{ date('d/m/Y', strtotime($fecha)) }}

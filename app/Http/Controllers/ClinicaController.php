@@ -3,28 +3,27 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 
 class ClinicaController extends Controller
 {
     /**
      * Sincroniza las secuencias autoincrementales de PostgreSQL con el MAX(id) actual
-     * para evitar errores de clave primaria duplicada (UniqueConstraintViolationException).
+     * en una sola consulta por tabla para evitar latencia de red.
      */
-    private function sincronizarSecuenciasPostgres(): void
+    private function sincronizarSecuenciasPostgres(?string $tablaEspecifica = null): void
     {
         try {
             if (DB::getDriverName() === 'pgsql') {
-                $tablas = ['usuarios', 'pacientes', 'medicos', 'especialidades', 'horarios_atencion', 'citas', 'roles'];
+                $tablas = $tablaEspecifica ? [$tablaEspecifica] : ['usuarios', 'pacientes', 'medicos', 'especialidades', 'horarios_atencion', 'citas', 'roles'];
                 foreach ($tablas as $tabla) {
                     try {
-                        $maxId = DB::table($tabla)->max('id') ?? 0;
-                        if ($maxId > 0) {
-                            DB::statement("SELECT setval(COALESCE(pg_get_serial_sequence('{$tabla}', 'id'), '{$tabla}_id_seq'), ?)", [$maxId]);
-                        }
+                        DB::statement("SELECT setval(COALESCE(pg_get_serial_sequence('{$tabla}', 'id'), '{$tabla}_id_seq'), COALESCE((SELECT MAX(id) FROM {$tabla}), 1))");
                     } catch (\Throwable $ex) {
-                        // Continuar si la secuencia ya está alineada o la tabla no tiene secuencia
+                        // Continuar si la tabla no posee secuencia
                     }
                 }
             }
@@ -34,11 +33,23 @@ class ClinicaController extends Controller
     }
 
     /**
-     * Asegura la existencia y correcta vinculación de cuentas demo por rol.
+     * Asegura la existencia y correcta vinculación de cuentas demo por rol (con caché para alta velocidad).
      */
     private function asegurarCuentasDemo(): void
     {
+        if (Cache::has('clinica_demo_asegurada')) {
+            return;
+        }
+
         try {
+            $userAdmin = DB::table('usuarios')->where('username', 'admin')->first();
+            $userMlopez = DB::table('usuarios')->where('username', 'mlopez')->first();
+
+            if ($userAdmin && $userMlopez) {
+                Cache::forever('clinica_demo_asegurada', true);
+                return;
+            }
+
             $this->sincronizarSecuenciasPostgres();
 
             $hash = Hash::make('123456');
@@ -50,7 +61,6 @@ class ClinicaController extends Controller
             $rolPaciente = $roles['Paciente'] ?? 4;
 
             // 1. Paciente Demo 1: María López (mlopez / 123456)
-            $userMlopez = DB::table('usuarios')->where('username', 'mlopez')->first();
             if (! $userMlopez) {
                 $nextUserId = (DB::table('usuarios')->max('id') ?? 0) + 1;
                 DB::table('usuarios')->insert([
@@ -99,19 +109,33 @@ class ClinicaController extends Controller
             }
 
             $this->asegurarEspecialidadesYMedicos();
-
             $this->sincronizarSecuenciasPostgres();
+
+            Cache::forever('clinica_demo_asegurada', true);
         } catch (\Throwable $e) {
             // Continuar en caso de desconexión momentánea
         }
     }
 
     /**
-     * Asegura la existencia de las 6 especialidades y 3 médicos por cada especialidad.
+     * Asegura la existencia de las 6 especialidades y 3 médicos por cada especialidad (optimizado con caché).
      */
     private function asegurarEspecialidadesYMedicos(): void
     {
+        if (Cache::has('clinica_catalogo_completo_v1')) {
+            return;
+        }
+
         try {
+            // Verificación rápida: si ya existen 6 especialidades y 18 médicos, omitir inserciones costosas
+            $numEsp = DB::table('especialidades')->count();
+            $numMed = DB::table('medicos')->count();
+
+            if ($numEsp >= 6 && $numMed >= 18) {
+                Cache::forever('clinica_catalogo_completo_v1', true);
+                return;
+            }
+
             $this->sincronizarSecuenciasPostgres();
 
             $hash = Hash::make('123456');
@@ -481,6 +505,7 @@ class ClinicaController extends Controller
             }
 
             $this->sincronizarSecuenciasPostgres();
+            Cache::forever('clinica_catalogo_completo_v1', true);
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error('Error en asegurarEspecialidadesYMedicos: ' . $e->getMessage() . ' en ' . $e->getFile() . ':' . $e->getLine());
         }
@@ -501,9 +526,13 @@ class ClinicaController extends Controller
      */
     public function sincronizarDatosManualmente()
     {
+        Cache::forget('clinica_demo_asegurada');
+        Cache::forget('clinica_catalogo_completo_v1');
+        $this->asegurarCuentasDemo();
         $this->asegurarEspecialidadesYMedicos();
+        $this->sincronizarSecuenciasPostgres();
 
-        return redirect()->route('dashboard')->with('success', '¡Catálogo sincronizado! 6 especialidades y 18 médicos verificados y listos en la base de datos.');
+        return redirect()->route('dashboard')->with('success', '¡Catálogo sincronizado! 6 especialidades y 18 médicos verificados y secuencias actualizadas.');
     }
 
     /**
@@ -614,24 +643,6 @@ class ClinicaController extends Controller
             'telefono'         => 'required|string|max:20',
         ]);
 
-        $this->sincronizarSecuenciasPostgres();
-
-        $username = trim($request->input('username'));
-        $email = trim($request->input('email'));
-        $ci = trim($request->input('ci'));
-
-        if (DB::table('usuarios')->where('username', $username)->exists()) {
-            return back()->with('error', "El nombre de usuario '$username' ya se encuentra registrado.")->withInput();
-        }
-
-        if (DB::table('usuarios')->where('email', $email)->exists()) {
-            return back()->with('error', "El correo electrónico '$email' ya se encuentra en uso.")->withInput();
-        }
-
-        if (DB::table('pacientes')->where('ci', $ci)->exists()) {
-            return back()->with('error', "Ya existe un expediente clínico registrado con el CI $ci.")->withInput();
-        }
-
         $rolPacienteId = DB::table('roles')->where('nombre', 'Paciente')->value('id') ?? 4;
         $maxId = DB::table('pacientes')->max('id') ?? 0;
         $count = max(DB::table('pacientes')->count(), $maxId) + 1;
@@ -642,8 +653,6 @@ class ClinicaController extends Controller
         }
 
         DB::transaction(function () use ($request, $rolPacienteId, $username, $email, $codigo, $ci) {
-            $this->sincronizarSecuenciasPostgres();
-
             $nextUserId = (DB::table('usuarios')->max('id') ?? 0) + 1;
 
             DB::table('usuarios')->insert([
@@ -676,7 +685,8 @@ class ClinicaController extends Controller
                 'updated_at'       => now(),
             ]);
 
-            $this->sincronizarSecuenciasPostgres();
+            $this->sincronizarSecuenciasPostgres('pacientes');
+            $this->sincronizarSecuenciasPostgres('usuarios');
         });
 
         return redirect()->route('login')->with('info', "¡Cuenta del paciente $codigo creada con éxito! Ingrese con usuario '$username' y su contraseña.");
@@ -927,13 +937,13 @@ class ClinicaController extends Controller
             ];
         } else {
             $kpis = [
-                'total_pacientes'    => DB::table('pacientes')->where('estado', true)->count(),
+                'total_pacientes'    => $pacientes->count(),
                 'label_1'            => 'Pacientes Registrados',
-                'total_medicos'      => DB::table('medicos')->where('estado', true)->count(),
+                'total_medicos'      => $medicos->count(),
                 'label_2'            => 'Médicos Activos',
-                'citas_hoy'          => DB::table('citas')->where('fecha_cita', date('Y-m-d'))->where('estado', '<>', 'Cancelada')->count(),
+                'citas_hoy'          => $citas->where('fecha_cita', date('Y-m-d'))->where('estado', '<>', 'Cancelada')->count(),
                 'label_3'            => 'Citas Médicas Hoy',
-                'citas_atendidas'    => DB::table('citas')->where('estado', 'Atendida')->count(),
+                'citas_atendidas'    => $citas->where('estado', 'Atendida')->count(),
                 'label_4'            => 'Citas Atendidas',
             ];
         }
@@ -973,8 +983,6 @@ class ClinicaController extends Controller
                 ->with('error_paciente', 'Error RN01: Ya existe un paciente registrado con el CI ' . $ci);
         }
 
-        $this->sincronizarSecuenciasPostgres();
-
         $maxId = DB::table('pacientes')->max('id') ?? 0;
         $count = max(DB::table('pacientes')->count(), $maxId) + 1;
         $codigo = 'PAC-' . str_pad((string) $count, 4, '0', STR_PAD_LEFT);
@@ -1001,7 +1009,7 @@ class ClinicaController extends Controller
             'updated_at'       => now(),
         ]);
 
-        $this->sincronizarSecuenciasPostgres();
+        $this->sincronizarSecuenciasPostgres('pacientes');
 
         return redirect('dashboard?mod=pacientes')
             ->with('success_paciente', "Paciente $codigo registrado con éxito.");
@@ -1034,8 +1042,6 @@ class ClinicaController extends Controller
                 ->with('error_medico', "Error: El correo $email ya está asignado a otro médico.");
         }
 
-        $this->sincronizarSecuenciasPostgres();
-
         $maxId = DB::table('medicos')->max('id') ?? 0;
         $count = max(DB::table('medicos')->count(), $maxId) + 1;
         $codigo = 'MED-' . str_pad((string) $count, 4, '0', STR_PAD_LEFT);
@@ -1045,7 +1051,6 @@ class ClinicaController extends Controller
         }
 
         DB::transaction(function () use ($request, $codigo, $matricula, $email) {
-            $this->sincronizarSecuenciasPostgres();
             $nextMedicoId = (DB::table('medicos')->max('id') ?? 0) + 1;
 
             DB::table('medicos')->insert([
@@ -1066,7 +1071,7 @@ class ClinicaController extends Controller
                 'especialidad_id' => $request->input('especialidad_id'),
             ]);
 
-            $this->sincronizarSecuenciasPostgres();
+            $this->sincronizarSecuenciasPostgres('medicos');
         });
 
         return redirect('dashboard?mod=medicos')
@@ -1090,7 +1095,6 @@ class ClinicaController extends Controller
                 ->with('error_especialidad', "La especialidad '$nombre' ya existe.");
         }
 
-        $this->sincronizarSecuenciasPostgres();
         $nextEspId = (DB::table('especialidades')->max('id') ?? 0) + 1;
 
         DB::table('especialidades')->insert([
@@ -1100,7 +1104,7 @@ class ClinicaController extends Controller
             'estado'      => true,
         ]);
 
-        $this->sincronizarSecuenciasPostgres();
+        $this->sincronizarSecuenciasPostgres('especialidades');
 
         return redirect('dashboard?mod=especialidades')
             ->with('success_especialidad', "Especialidad '$nombre' agregada con éxito.");
@@ -1127,7 +1131,6 @@ class ClinicaController extends Controller
                 ->with('error_horario', 'La hora de fin debe ser posterior a la hora de inicio.');
         }
 
-        $this->sincronizarSecuenciasPostgres();
         $nextHorarioId = (DB::table('horarios_atencion')->max('id') ?? 0) + 1;
 
         DB::table('horarios_atencion')->insert([
@@ -1140,7 +1143,7 @@ class ClinicaController extends Controller
             'estado'           => true,
         ]);
 
-        $this->sincronizarSecuenciasPostgres();
+        $this->sincronizarSecuenciasPostgres('horarios_atencion');
 
         return redirect('dashboard?mod=horarios')
             ->with('success_horario', 'Horario de atención registrado con éxito.');
@@ -1202,8 +1205,6 @@ class ClinicaController extends Controller
                 ->with('error_cita', 'Error RF07: El médico ya tiene una cita activa en ese intervalo de horario.');
         }
 
-        $this->sincronizarSecuenciasPostgres();
-
         $maxId = DB::table('citas')->max('id') ?? 0;
         $count = max(DB::table('citas')->count(), $maxId) + 1;
         $codigo = 'CM-' . str_pad((string) $count, 4, '0', STR_PAD_LEFT);
@@ -1228,7 +1229,7 @@ class ClinicaController extends Controller
             'fecha_creacion'    => now(),
         ]);
 
-        $this->sincronizarSecuenciasPostgres();
+        $this->sincronizarSecuenciasPostgres('citas');
 
         return redirect('dashboard?mod=citas')
             ->with('success_cita', "¡Cita $codigo programada exitosamente!");

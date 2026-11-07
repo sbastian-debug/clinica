@@ -16,7 +16,7 @@
 <div class="row g-4">
     <!-- Barra Superior de Filtrado de Fechas -->
     <div class="col-12 d-print-none">
-        <div class="custom-card p-4">
+        <div class="custom-card p-3 p-sm-4">
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3 border-bottom pb-3">
                 <div class="d-flex align-items-center gap-2">
                     <div class="p-2 bg-success bg-opacity-10 text-success rounded-3">
@@ -67,7 +67,7 @@
 
     <!-- Tarjetas de Métricas Ejecutivas del Reporte -->
     <div class="col-12">
-        <div class="row g-3">
+        <div class="row g-2 g-sm-3">
             <div class="col-6 col-md-3">
                 <div class="kpi-card">
                     <div class="kpi-icon bg-primary bg-opacity-10 text-primary">

@@ -65,6 +65,21 @@
             transform: translateY(-1px);
             color: white;
         }
+
+        @media (max-width: 576px) {
+            body {
+                padding: 1.25rem 0.75rem;
+            }
+            .register-card {
+                padding: 1.5rem 1.15rem;
+                border-radius: 20px;
+            }
+            .brand-badge {
+                width: 44px;
+                height: 44px;
+                font-size: 1.3rem;
+            }
+        }
     </style>
 </head>
 <body>

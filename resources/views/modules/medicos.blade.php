@@ -1,7 +1,7 @@
 <div class="row g-4">
     <!-- Formulario para Registrar Nuevo Médico -->
     <div class="col-12">
-        <div class="custom-card p-4">
+        <div class="custom-card p-3 p-sm-4">
             <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-3">
                 <div class="d-flex align-items-center gap-2">
                     <div class="p-2 bg-info bg-opacity-10 text-info rounded-3">
@@ -80,12 +80,12 @@
     <!-- Tabla de Médicos -->
     <div class="col-12">
         <div class="custom-card">
-            <div class="p-4 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="p-3 p-sm-4 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-3">
                 <div>
                     <h6 class="fw-bold mb-1 text-dark">Plantel Médico Especializado</h6>
                     <span class="text-muted small">Cuerpo facultativo y profesionales de la clínica</span>
                 </div>
-                <div class="search-box" style="width: 320px;">
+                <div class="search-box" style="width: 320px; max-width: 100%;">
                     <i class="bi bi-search"></i>
                     <input type="text" id="buscarMedicos" class="form-control form-control-sm" placeholder="Buscar por código, médico o matrícula...">
                 </div>

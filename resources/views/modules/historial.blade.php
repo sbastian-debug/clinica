@@ -9,7 +9,7 @@
     <!-- Selector de Paciente (Oculto para rol Paciente) -->
     @if($rol !== 'Paciente')
     <div class="col-12">
-        <div class="custom-card p-4">
+        <div class="custom-card p-3 p-sm-4">
             <div class="d-flex align-items-center gap-2 mb-3 border-bottom pb-3">
                 <div class="p-2 bg-primary bg-opacity-10 text-primary rounded-3">
                     <i class="bi bi-folder2-open fs-5"></i>
@@ -46,7 +46,7 @@
     @if($paciente)
     <!-- Ficha del Paciente y Resumen de Métricas -->
     <div class="col-12">
-        <div class="card border-0 bg-white shadow-sm rounded-4 p-4">
+        <div class="card border-0 bg-white shadow-sm rounded-4 p-3 p-sm-4">
             <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 border-bottom pb-3 mb-4">
                 <div class="d-flex align-items-center gap-3">
                     <div class="p-3 bg-primary bg-opacity-10 text-primary rounded-circle">
@@ -98,7 +98,7 @@
             </div>
 
             <!-- Resumen Estadístico de Citas -->
-            <div class="row g-3">
+            <div class="row g-2 g-sm-3">
                 <div class="col-6 col-md-3">
                     <div class="border rounded-3 p-3 text-center bg-white shadow-xs">
                         <div class="text-muted small fw-medium">Total Citas Solicitadas</div>
@@ -130,7 +130,7 @@
     <!-- Línea de Tiempo y Tabla Cronológica de Citas -->
     <div class="col-12">
         <div class="custom-card">
-            <div class="p-4 border-bottom d-flex justify-content-between align-items-center">
+            <div class="p-3 p-sm-4 border-bottom d-flex justify-content-between align-items-center">
                 <div>
                     <h6 class="fw-bold mb-1 text-dark">Línea de Tiempo de Consultas Médicas</h6>
                     <span class="text-muted small">Registro histórico ordenado desde la más reciente</span>

@@ -6,7 +6,7 @@
     <!-- Formulario para Registrar Nueva Cita (Para Paciente, Recepcionista y Administrador) -->
     @if($rol !== 'Medico')
     <div class="col-12">
-        <div class="custom-card p-4">
+        <div class="custom-card p-3 p-sm-4">
             <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-3">
                 <div class="d-flex align-items-center gap-2">
                     <div class="p-2 bg-primary bg-opacity-10 text-primary rounded-3">
@@ -129,7 +129,7 @@
     <!-- Listado y Gestión de Citas Médicas (CU07, CU08, CU09, CU10) -->
     <div class="col-12">
         <div class="custom-card">
-            <div class="p-4 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="p-3 p-sm-4 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-3">
                 <div>
                     <h6 class="fw-bold mb-1 text-dark">
                         @if($rol === 'Paciente')
@@ -144,7 +144,7 @@
                         Controle el estado, asistencia en sala de espera, reprogramaciones y cancelaciones
                     </span>
                 </div>
-                <div class="search-box" style="width: 320px;">
+                <div class="search-box" style="width: 320px; max-width: 100%;">
                     <i class="bi bi-search"></i>
                     <input type="text" id="buscarCitas" class="form-control form-control-sm" placeholder="Buscar por código, médico o fecha...">
                 </div>
